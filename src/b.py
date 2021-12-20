@@ -949,7 +949,7 @@ class _CLI(object):
     @ValidOpts()
     @zero_args
     def help(self, _opts):
-        commands.help_(self.ui, 'b')
+        commands.help_(self.ui, b'b')
 
     @ValidOpts()
     @zero_args
