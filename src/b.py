@@ -53,7 +53,7 @@ from mercurial import hg, commands, registrar
 #
 # Version Info
 #
-_version_num = (0, 7, 0)
+__version__ = "1.0.0"
 _build_date = date(2018, 10, 19)
 
 
@@ -168,9 +168,9 @@ def _datetime(timestamp=None):
 
 def _hash(*args):
     """Return a hash of the given text for use as an id.
-    
+
     Currently SHA1 hashing is used.  It should be plenty for our purposes.
-    
+
     """
     return hashlib.sha1(''.join(args).encode('utf-8')).hexdigest()
 
@@ -201,17 +201,17 @@ def _truth(s):
 
 def _task_from_taskline(taskline):
     """Parse a taskline (from a task file) and return a task.
-    
+
     A taskline should be in the format:
-    
+
         summary text ... | meta1:meta1_value,meta2:meta2_value,...
-    
+
     The task returned will be a dictionary such as:
-    
+
         { 'id': <hash id>,
           'text': <summary text>,
            ... other metadata ... }
-    
+
     A taskline can also consist of only summary text, in which case the id
     and other metadata will be generated when the line is read.  This is
     supported to enable editing of the taskfile with a simple text editor.
@@ -253,12 +253,12 @@ def _tasklines_from_tasks(tasks):
 
 def _prefixes(elements):
     """Return a mapping of elements to their unique prefix in O(n) time.
-    
+
     This is much faster than the native t function, which takes O(n^2) time.
-    
+
     Each prefix will be the shortest possible substring of the element that
     can uniquely identify it among the given group of elements.
-    
+
     If an element is entirely a substring of another, the whole string will be
     the prefix.
     """
@@ -313,10 +313,10 @@ def _describe_print(num, is_open, owner, filter_by):
 class BugsDict(object):
     """A set of bugs, issues, and tasks, both finished and unfinished, for a
     given repository.
-    
+
     The list's file is read from disk when initialized. The items
     can be written back out to disk with the write() function.
-    
+
     You can specify any taskdir you want, but the intent is to work from the cwd
     and therefore anything calling this class ought to handle that change
     (normally to the repo root)
@@ -399,12 +399,12 @@ class BugsDict(object):
 
     def __getitem__(self, prefix):
         """Return the task with the given prefix.
-        
+
         If more than one task matches the prefix an AmbiguousPrefix exception
         will be raised, unless the prefix is the entire ID of one task.
-        
+
         If no tasks match the prefix an UnknownPrefix exception will be raised.
-        
+
         """
         matched = [item for item in self.bugs.keys() if item.startswith(prefix)]
         if len(matched) == 1:
@@ -459,14 +459,14 @@ class BugsDict(object):
     def _get_user(self, user, force=False):
         """Given a user prefix, returns the appropriate username, or fails if
         the correct user cannot be identified.
-        
+
         'me' is a special username which maps to the username specified when
         constructing the BugsDict.
         'Nobody' (and prefixes of 'Nobody') is a special username which maps
         internally to the empty string, indicating no assignment.
         If force is true, the user 'Nobody' is used.  This is unadvisable,
         avoid forcing the username 'Nobody'.
-        
+
         If force is true, it assumes user is not a prefix and should be
         assumed to exist already.
         """
@@ -511,12 +511,12 @@ class BugsDict(object):
 
     def rename(self, prefix, text):
         """Renames the bug
-        
+
         If more than one task matches the prefix an AmbiguousPrefix exception
         will be raised, unless the prefix is the entire ID of one task.
-        
+
         If no tasks match the prefix an UnknownPrefix exception will be raised.
-        
+
         """
         task = self[prefix]
         if text.startswith('s/') or text.startswith('/'):
@@ -553,11 +553,11 @@ class BugsDict(object):
 
     def details(self, prefix):
         """ Provides additional details on the requested bug.
-        
+
         Metadata (like owner, and creation time) which are
         not stored in the details file are displayed along with
         the details.
-        
+
         Sections (denoted by a [text] line) with no content
         are not displayed.
         """
@@ -600,7 +600,7 @@ class BugsDict(object):
 
     def comment(self, prefix, comment):
         """Allows the user to add a comment to the bug without launching an editor.
-        
+
         If they have a username set, the comment will show who made it."""
         task = self[prefix]  # confirms prefix does exist
         path = self._get_details_path(task['id'])[1]
@@ -954,8 +954,7 @@ class _CLI(object):
     @ValidOpts()
     @zero_args
     def version(self, _opts):
-        version_str = "%d.%d.%d" % _version_num
-        self.ui.write(("b Version %s - built %s\n" % (version_str, _build_date)).encode('utf-8'))
+        self.ui.write(("b Version %s\n" % __version__).encode('utf-8'))
 
 
 cmdtable = {}
@@ -984,68 +983,68 @@ buglink = 'http://hg.mwdiamond.com/b'
          )
 def execute_command(ui, repo, cmd='list', *args, **opts):
     """Distributed Bug Tracker For Mercurial
-    
+
     List of Commands::
-    
+
     add text [-e]
         Adds a new open bug to the database, if user is set in the config files,
         assigns it to user
-        
+
         -e here and elsewhere launches the details editor for the issue upon
         successful execution of the command
-        
+
     rename prefix text [-e]
         Renames The bug denoted by prefix to text.   You can use sed-style
         substitution strings if so desired.
-        
+
     users [--rev rev]
         Displays a list of all users, and the number of open bugs assigned to
         each of them
-        
+
     assign prefix username [-f] [-e]
         Assigns bug denoted by prefix to username.  Username can be a lowercase
         prefix of another username and it will be mapped to that username. To
         avoid this functionality and assign the bug to the exact username
         specified, or if the user does not already exist in the bugs system, use
         the -f flag to force the name.
-        
+
         Use 'me' to assign the bug to the current user,
         and 'Nobody' to remove its assignment.
-        
+
     details [--rev rev] prefix [-e]
         Prints the extended details of the specified bug
-        
+
     edit prefix
-        Launches your specified editor to provide additional details 
-        
+        Launches your specified editor to provide additional details
+
     comment prefix comment [-e]
         Appends comment to the details of the bug, along with the date
         and, if specified, your username without needing to launch an editor
-        
+
     resolve prefix [-e]
         Marks the specified bug as resolved
-        
+
     reopen prefix [-e]
         Marks the specified bug as open
-        
+
     list [--rev rev] [-r] [-o owner] [-g search] [-a|-c]
         Lists all bugs, with the following filters:
-        
+
             -r list resolved bugs.
-        
+
             -o list bugs assigned to owner.  '*' will list all bugs, 'me' will
                list all bugs assigned to the current user, and 'Nobody' will
                list all unassigned bugs.
-        
+
             -g filter by the search string appearing in the title
-            
+
             -a list bugs alphabetically
-            
+
             -c list bugs chronologically
-        
+
     id [--rev rev] prefix [-e]
         Takes a prefix and returns the full id of that bug
-    
+
     version
         Outputs the version number of b being used in this repository
     """
@@ -1072,15 +1071,15 @@ def version(given_version=None):
 
     Can be used for comparison:
         b.version() > b.version("0.7.0")
-    
+
     Note: Before version 0.6.2 this function did not exist. If:
         callable(getattr(b, "version", None))
     returns false, that indicates a version before 0.6.2"""
-    if given_version:
-        a, b, c = (int(ver) for ver in given_version.split('.') if
-                   ver.isdigit())
-        return a, b, c
-    return _version_num
+    if given_version is None:
+        given_version = __version__
+    a, b, c = (int(ver) for ver in given_version.split('.') if
+                ver.isdigit())
+    return a, b, c
 
 
 def bugs_dir(ui):
@@ -1108,7 +1107,7 @@ def status(ui, repo, revision='tip', ignore=None):
       Committing unrelated changes to the repository and the bugs database in
       the same revision should be discouraged.
       Returns a list of files outside the bugs directory in the given changeset.
-    
+
     You may pass a list of Mercurial patterns (see `hg help patterns`) relative
     to the repository root to exclude from the returned list.
     """
