@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "b"
-version = "1.0.0"
+version = "1.0.1"
 description = "A distributed bug tracker extension for Mercurial"
 authors = ["Jared Julien <jared.julien@nexteer.com>"]
 

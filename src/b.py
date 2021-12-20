@@ -53,8 +53,7 @@ from mercurial import hg, commands, registrar
 #
 # Version Info
 #
-__version__ = "1.0.0"
-_build_date = date(2018, 10, 19)
+__version__ = "1.0.1"
 
 
 #
