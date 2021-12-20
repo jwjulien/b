@@ -6,6 +6,7 @@ authors = ["Jared Julien <jared.julien@nexteer.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
+mercurial = "^6.0"
 
 [tool.poetry.dev-dependencies]
 

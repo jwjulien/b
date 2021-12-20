@@ -1,0 +1,27 @@
+[[package]]
+name = "mercurial"
+version = "6.0"
+description = "Fast scalable distributed SCM (revision control, version control) system"
+category = "main"
+optional = false
+python-versions = ">=2.7.4,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.0,!=3.5.1,!=3.5.2,!=3.6.0,!=3.6.1"
+
+[metadata]
+lock-version = "1.1"
+python-versions = "^3.7"
+content-hash = "f05953493df84f7d1da32eb8c07ee84a277766f539ed4a9346fca02679215bf9"
+
+[metadata.files]
+mercurial = [
+    {file = "mercurial-6.0-cp27-cp27m-win32.whl", hash = "sha256:fc471273ad59213edc180e0d4af54b919366e4f3bd7a0cfdb2c7cafb3e1cbbb7"},
+    {file = "mercurial-6.0-cp27-cp27m-win_amd64.whl", hash = "sha256:ba33803534544c9255345a14168e886454af9588abd619654e59c79295e2f00a"},
+    {file = "mercurial-6.0-cp310-cp310-win32.whl", hash = "sha256:989c765ca7f335b86298be588007eda79acff3894396788bf17ae839c665fbb2"},
+    {file = "mercurial-6.0-cp310-cp310-win_amd64.whl", hash = "sha256:f5fb31327d9a93eee5eb7151c3ef9176c42935c0a11edf58923c05e354d0fb91"},
+    {file = "mercurial-6.0-cp37-cp37m-win32.whl", hash = "sha256:c51bfad84afd04a55e55868c5a34b6d708cf492ff1163f853eaabb126cf6c1a2"},
+    {file = "mercurial-6.0-cp37-cp37m-win_amd64.whl", hash = "sha256:25f6360216441a0df1e88825b2a025ced73bfb38977be06d6b453023922b1c3d"},
+    {file = "mercurial-6.0-cp38-cp38-win32.whl", hash = "sha256:5a4b1f55fea8b58756c86ac0199e3be4815c85c6ae79fec8422f0ea044f27fce"},
+    {file = "mercurial-6.0-cp38-cp38-win_amd64.whl", hash = "sha256:d506960775df8905eb9cd20360183b2b9d669c58eae3439957b9c9c944e22d48"},
+    {file = "mercurial-6.0-cp39-cp39-win32.whl", hash = "sha256:1c9524ea3a58b4c2999536a9563f7e478272efb79ebfc40461aa700051b1cadd"},
+    {file = "mercurial-6.0-cp39-cp39-win_amd64.whl", hash = "sha256:6ac69b358fc611edbcd6409fdcce2f786f100ff2c8a4ac26291ae0e2d17e2803"},
+    {file = "mercurial-6.0.tar.gz", hash = "sha256:53b68b7e592adce3a4e421da3bffaacfc7721f403aac319e6d2c5122574de62f"},
+]

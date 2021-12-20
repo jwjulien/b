@@ -72,17 +72,17 @@ class RequiresPrefix(Error):
     """Raised by CLI when a prefix is required."""
 
     def __init__(self):
-        super(RequiresPrefix, self).__init__(_(
+        super(RequiresPrefix, self).__init__(
             "You need to provide an issue prefix. "
-            "Run list to get a unique prefix for the bug you are looking for."))
+            "Run list to get a unique prefix for the bug you are looking for.")
 
 
 class UnknownPrefix(Error):
     """Raised when trying to use a prefix that does not match any tasks."""
 
     def __init__(self, prefix):
-        super(UnknownPrefix, self).__init__(_(
-            "The provided prefix (%s) could not be found in the bugs database.")
+        super(UnknownPrefix, self).__init__(
+            "The provided prefix (%s) could not be found in the bugs database."
                                             % prefix)
         self.prefix = prefix
 
@@ -91,10 +91,10 @@ class AmbiguousPrefix(Error):
     """Raised when trying to use a prefix that could identify multiple tasks."""
 
     def __init__(self, prefix):
-        super(AmbiguousPrefix, self).__init__(_(
+        super(AmbiguousPrefix, self).__init__(
             "The provided prefix - %s - is ambiguous, and could point to "
             "multiple bugs. Run list to get a unique prefix for the bug you "
-            "are looking for.") % prefix)
+            "are looking for." % prefix)
         self.prefix = prefix
 
 
@@ -113,9 +113,9 @@ class UnknownUser(Error):
     """Raised when trying to use a user prefix that does not match any users."""
 
     def __init__(self, user):
-        super(UnknownUser, self).__init__(_(
+        super(UnknownUser, self).__init__(
             "The provided user - %s - did not match any users in the system. "
-            "Use -f to force the creation of a new user.") % user)
+            "Use -f to force the creation of a new user." % user)
         self.user = user
 
 
@@ -234,8 +234,8 @@ def _task_from_taskline(taskline):
         return task
     except Exception:
         raise IOError(errno.EIO,
-                      _("Failed to parse task; perhaps a missplaced '|'?\n"
-                        "Line is: %s") % taskline)
+                      "Failed to parse task; perhaps a missplaced '|'?\n"
+                      "Line is: %s" % taskline)
 
 
 def _tasklines_from_tasks(tasks):
@@ -768,9 +768,7 @@ class _CLI(object):
 
         self.user = self.ui.config(b"bugs", b"user", b'').decode('utf-8')
         if self.user == 'hg.user':
-            ui.warn(_(
-                "No need to set bugs.user=hg.user in your hgrc - "
-                "just remove this line\n"))
+            ui.warn(b"No need to set bugs.user=hg.user in your hgrc - just remove this line\n")
             self.user = ''
         if not self.user:
             # Use Mercurial username if bugs.user is not set
