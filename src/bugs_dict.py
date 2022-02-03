@@ -310,7 +310,7 @@ class BugsDict(object):
             header = header + "*Resolved* "
         if task['owner'] != '':
             header = header + ("Owned By: %s\n" % task['owner'])
-        header = header + ("Filed On: %s\n\n" % helpers.datetime(task['time']))
+        header = header + ("Filed On: %s\n\n" % helpers.formatted_datetime(task['time']))
         text = header + text
 
         return text.strip()
@@ -336,7 +336,7 @@ class BugsDict(object):
         if not os.path.exists(path):
             self._make_details_file(task['id'])
 
-        comment = "On: %s\n%s" % (helpers.datetime(), comment)
+        comment = "On: %s\n%s" % (helpers.formatted_datetime(), comment)
 
         if self.user != '':
             comment = "By: %s\n%s" % (self.user, comment)

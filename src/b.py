@@ -17,6 +17,8 @@ that doesn't integrate with Mercurial.
 import sys
 import os
 
+from command import run
+
 
 
 
@@ -33,7 +35,7 @@ __version__ = "1.1.0"
 # ----------------------------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
     # Run from the command line - use argparser.
-    print('Command line')
+    sys.exit(run())
 
 elif __name__ == "hgext_b":
     # Run via Mercurial - use extension interface.

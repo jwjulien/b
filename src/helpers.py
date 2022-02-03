@@ -24,14 +24,13 @@ from datetime import datetime
 # Helpers
 # ----------------------------------------------------------------------------------------------------------------------
 def bugs_dir(ui):
-    """Returns the path to the bugs dir, relative to the repo root"""
+    """Returns the path to the bugs dir, relative to the repo root."""
     return ui.config(b"bugs", b"dir", b".bugs").decode('utf-8')
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def datetime(timestamp=None):
-    """Returns a formatted string of the time from a timestamp,
-    or now if called with no arguments"""
+def formatted_datetime(timestamp=None):
+    """Returns a formatted string of the time from a timestamp, or now if called with no arguments."""
     if timestamp:
         t = datetime.fromtimestamp(float(timestamp))
     else:
@@ -44,7 +43,6 @@ def hash(*args):
     """Return a hash of the given text for use as an id.
 
     Currently SHA1 hashing is used.  It should be plenty for our purposes.
-
     """
     return hashlib.sha1(''.join(args).encode('utf-8')).hexdigest()
 
@@ -52,13 +50,13 @@ def hash(*args):
 # ----------------------------------------------------------------------------------------------------------------------
 if 'HG_B_SIMPLE_HASHING' in os.environ:
     def hash(*args):
-        """Hashes only the first argument"""
+        """Hashes only the first argument."""
         return hashlib.sha1(args[0].encode('utf-8')).hexdigest()
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 def mkdir_p(path):
-    """ race condition handling recursive mkdir -p call
+    """Race condition handling recursive mkdir -p call:
     http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
     """
     try:
@@ -72,7 +70,7 @@ def mkdir_p(path):
 
 # ----------------------------------------------------------------------------------------------------------------------
 def truth(s):
-    """ Indicates the truth of a string """
+    """Indicates the truth of a string."""
     return s == 'True' or s == 'true'
 
 
@@ -186,3 +184,8 @@ def describe_print(num, is_open, owner, filter_by):
     if filter_by:
         out = out + " whose title contains %s" % filter_by
     return out
+
+
+
+
+# End of File

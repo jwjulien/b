@@ -6,150 +6,258 @@
 #   Copyright:  (c) 2010-2011 Michael Diamond <michael@digitalgemstones.com>
 #               (c) 2022 Jared Julien, Nexteer Automotive
 # ---------------------------------------------------------------------------------------------------------------------
-"""Extensions that integrate b into Mercurial.
+"""Standalone command line interface for b.
+
+Because this is standalone and does not involve Mercurial, the bits regarding specifying a revision have been stripped.
 """
 
 # ======================================================================================================================
 # Import Statements
 # ----------------------------------------------------------------------------------------------------------------------
-from argparse import ArgumentParser
 import os
-import sys
-import tempfile
-import traceback
-from mercurial.error import Abort
-from mercurial import commands, registrar
+from argparse import ArgumentParser
+from configparser import ConfigParser
+import importlib_metadata
 
-from b import __version__
-import exceptions
-import helpers
-import decorators
 from bugs_dict import BugsDict
-from interface import CLI
+import exceptions
+
 
 
 
 
 # ======================================================================================================================
-# Comand Line Processing
+# Helper Functions
 # ----------------------------------------------------------------------------------------------------------------------
-def run():
-    description = """Distributed Bug Tracker For Mercurial
-
-List of Commands::
-
-add text [-e]
-    Adds a new open bug to the database, if user is set in the config files,
-    assigns it to user
-
-    -e here and elsewhere launches the details editor for the issue upon
-    successful execution of the command
-
-rename prefix text [-e]
-    Renames The bug denoted by prefix to text.   You can use sed-style
-    substitution strings if so desired.
-
-users [--rev rev]
-    Displays a list of all users, and the number of open bugs assigned to
-    each of them
-
-assign prefix username [-f] [-e]
-    Assigns bug denoted by prefix to username.  Username can be a lowercase
-    prefix of another username and it will be mapped to that username. To
-    avoid this functionality and assign the bug to the exact username
-    specified, or if the user does not already exist in the bugs system, use
-    the -f flag to force the name.
-
-    Use 'me' to assign the bug to the current user,
-    and 'Nobody' to remove its assignment.
-
-details [--rev rev] prefix [-e]
-    Prints the extended details of the specified bug
-
-edit prefix
-    Launches your specified editor to provide additional details
-
-comment prefix comment [-e]
-    Appends comment to the details of the bug, along with the date
-    and, if specified, your username without needing to launch an editor
-
-resolve prefix [-e]
-    Marks the specified bug as resolved
-
-reopen prefix [-e]
-    Marks the specified bug as open
-
-list [--rev rev] [-r] [-o owner] [-g search] [-a|-c]
-    Lists all bugs, with the following filters:
-
-        -r list resolved bugs.
-
-        -o list bugs assigned to owner.  '*' will list all bugs, 'me' will
-            list all bugs assigned to the current user, and 'Nobody' will
-            list all unassigned bugs.
-
-        -g filter by the search string appearing in the title
-
-        -a list bugs alphabetically
-
-        -c list bugs chronologically
-
-id [--rev rev] prefix [-e]
-    Takes a prefix and returns the full id of that bug
-
-version
-    Outputs the version number of b being used in this repository
-    """
-    parser = ArgumentParser(description=description)
-    parser.add_argument(
-        '-f',
-        '--force',
-        action='store_true',
-        default=False,
-        help='force this exact username'
-    )
+def _add_arg_edit(parser):
+    """The edit flag is common across several subparsers.  This helper sets the same attributes for each."""
     parser.add_argument(
         '-e',
         '--edit',
         action='store_true',
         default=False,
-        help='launch details editor after running command'
+        help='launch details editor for the bug'
+    )
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def _add_arg_prefix(parser):
+    """Add the common prefix argument to the provided parser."""
+    parser.add_argument(
+        'prefix',
+        help='prefix of the bug'
+    )
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def _add_arg_text(parser, help):
+    """Add the common TEXT input argument to the provided parser."""
+    parser.add_argument(
+        'text',
+        nargs='+',
+        help=help
+    )
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def _get_user():
+    """Attempt to fetch and return the user's name from the mercurial.ini file.
+
+    This has ties to b originally being a part of Mercurial and the file is most likely going to be present on systems
+    where b is being used, even as this version not associated with Mercurial.  It may be a better option for b to make
+    use of a separate config file, but that change can happen later.
+
+    If the mercurial.ini isn't found or if the user's name is not set then a blank string is returned instead.
+    """
+    path = os.path.expanduser(os.path.join('~', 'mercurial.ini'))
+    if os.path.exists(path):
+        parser = ConfigParser()
+        parser.read(path)
+        return parser.get('ui', 'username', fallback='')
+    return ''
+
+
+
+
+# ======================================================================================================================
+# Command Line Processing
+# ----------------------------------------------------------------------------------------------------------------------
+def run():
+    parser = ArgumentParser(description="A simplistic, distributed bug tracing utility.")
+    parser.add_argument(
+        '-d',
+        '--dir',
+        default='.bugs',
+        help='directory containing the bugs (default: .bugs)'
     )
     parser.add_argument(
+        '-u',
+        '--user',
+        default=_get_user(),
+        help='your username - attempts to extract from mercurial.ini if not provided'
+    )
+    parser.add_argument(
+        '-E',
+        '--editor',
+        default='notepad' if os.name == 'nt' else 'nano',
+        help='specify the editor that you would like to use when editing bug details'
+    )
+    commands = parser.add_subparsers(title='command', dest='command')
+
+    parser_add = commands.add_parser('add', help='adds a new open bug to the database')
+    _add_arg_text(parser_add, 'title text for the new bug')
+    _add_arg_edit(parser_add)
+
+    parser_rename = commands.add_parser('rename', help='rename the bug denoted by PREFIX to TEXT')
+    _add_arg_prefix(parser_rename)
+    _add_arg_text(parser_rename, 'new title text for the bug')
+    _add_arg_edit(parser_rename)
+
+    commands.add_parser('users', help='display a list of all users and the number of open bugs assigned to each')
+
+    parser_assign = commands.add_parser('assign', help='assign bug denoted by PREFIX to username')
+    _add_arg_prefix(parser_assign)
+    parser_assign.add_argument(
+        'username',
+        help='username of user to be assigned - can be a prefix of an existing user or "nobody" to unassign'
+    )
+    parser_assign.add_argument(
+        '-f',
+        '--force',
+        action='store_true',
+        default=False,
+        help='do not attempt to map USERNAME as a prefix, instead use the provided username verbatim'
+    )
+    _add_arg_edit(parser_assign)
+
+    parser_details = commands.add_parser('details', help='print the extended details of the specified bug')
+    _add_arg_prefix(parser_details)
+    _add_arg_edit(parser_details)
+
+    parser_edit = commands.add_parser('edit', help='launch the system editor to provide additional details')
+    _add_arg_prefix(parser_edit)
+
+    parser_comment = commands.add_parser('comment', help='append the provided comment to the details of the bug')
+    _add_arg_prefix(parser_comment)
+    _add_arg_text(parser_comment, 'comment text to append')
+    _add_arg_edit(parser_comment)
+
+    parser_resolve = commands.add_parser('resolve', help='mark the specified bug as resolved')
+    _add_arg_prefix(parser_resolve)
+    _add_arg_edit(parser_resolve)
+
+    parser_reopen = commands.add_parser('reopen', help='mark the specified bug as open')
+    _add_arg_prefix(parser_reopen)
+    _add_arg_edit(parser_reopen)
+
+    parser_list = commands.add_parser('list', help='list all bugs according to the specified filters')
+    parser_list.add_argument(
         '-r',
         '--resolved',
+        action='store_true',
+        default=False,
+        help='include resolved bugs'
     )
-@command(b"b|bug|bugs", [
-    (b'f', b'force', False, b'Force this exact username'),
-    (b'e', b'edit', False, b'Launch details editor after running command'),
-    (b'r', b'resolved', False, b'List resolved bugs'),
-    (b'o', b'owner', b'*', b'Specify an owner to list by'),
-    (b'g', b'grep', b'', b'Filter titles by STRING'),
-    (b'a', b'alpha', False, b'Sort list alphabetically'),
-    (b'c', b'chrono', False, b'Sort list chronologically'),
-    (b'T', b'truncate', False, b'Truncate list output to fit window'),
-    (b'', b'rev', b'',
-    b'Run a read-only command against a different revision')
-], b"cmd [args]")
+    parser_list.add_argument(
+        '-o',
+        '--owner',
+        default='*',
+        help='"*" lists all, "nobody" lists unassigned, otherwise text to matched against username'
+    )
+    parser_list.add_argument(
+        '-g',
+        '--grep',
+        default='',
+        help='filter by the search string appearing in the title'
+    )
+    sort_group = parser_list.add_mutually_exclusive_group()
+    sort_group.add_argument(
+        '-a',
+        '--alpha',
+        action='store_true',
+        default=False,
+        help='list bugs alphabetically'
+    )
+    sort_group.add_argument(
+        '-c',
+        '--chrono',
+        action='store_true',
+        default=False,
+        help='list bugs chronologically'
+    )
 
+    parser_id = commands.add_parser('id', help='given a prefix return the full ID of a bug')
+    _add_arg_prefix(parser_id)
+    _add_arg_edit(parser_id)
 
-# # ----------------------------------------------------------------------------------------------------------------------
-# def execute_command(ui, repo, cmd=b'list', *args, **opts):
-#     """
-#     """
-#     try:
-#         try:
-#             _CLI(ui, repo).invoke(cmd, *args, **opts)
-#         except Exception:
-#             if 'HG_B_LOG_TRACEBACKS' in os.environ:
-#                 traceback.print_exc(file=sys.stderr)
-#                 sys.stderr.write("\n")
-#             raise
-#     except exceptions.Error as e:
-#         ui.warn(b'%s\n' % e.msg.encode('utf-8'))
-#         return 1
+    commands.add_parser('version', help='output the version number of b and exit')
 
+    # Parser arguments from the command line - with a special case for no command which defaults to "list".
+    args, extras = parser.parse_known_args()
+    if args.command is None:
+        args.comment = 'list'
+        args = parser_list.parse_args(extras, namespace=args)
 
+    # If the text argument is present join the possible multiple values into a single string.
+    if 'text' in args:
+        args.text = ' '.join(args.text).strip()
+
+    # Load the bug dictionary from the bugs file.
+    bugs = BugsDict(args.dir, args.user)
+
+    try:
+        # Handle the specified command.
+        if args.command == 'add':
+            print(bugs.add(args.text))
+
+        elif args.command == 'assign':
+            print(bugs.assign(args.prefix, args.username, args.force))
+
+        elif args.command == 'comment':
+            bugs.comment(args.prefix, args.text)
+
+        elif args.command == 'details':
+            print(bugs.details(args.prefix))
+
+        elif args.command == 'edit':
+            bugs.edit(args.prefix, args.editor)
+
+        elif args.command == 'id':
+            print(bugs.id(args.prefix))
+
+        elif args.command is None or args.command == 'list':
+            print(bugs.list(not args.resolved, args.owner, args.grep, args.alpha, args.chrono))
+
+        elif args.command == 'rename':
+            bugs.rename(args.prefix, args.text)
+
+        elif args.command == 'resolve':
+            bugs.resolve(args.prefix)
+
+        elif args.command == 'reopen':
+            bugs.reopen(args.prefix)
+
+        elif args.command == 'users':
+            print(bugs.users())
+
+        elif args.command == 'version':
+            print(f'b version {importlib_metadata.version("b")}')
+
+        else:
+            raise exceptions.UnknownCommand(args.command)
+
+    except exceptions.Error as err:
+        print(err.msg)
+        return 1
+
+    else:
+        bugs.write()
+
+        if 'edit' in args and args.edit:
+            prefix = args.prefix if 'prefix' in args else bugs.last_added_id
+            bugs.edit(prefix, args.editor)
+
+    return 0
 
 
 
