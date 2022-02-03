@@ -11,6 +11,9 @@ mercurial = "^6.0"
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
 
+[tool.poetry.scripts]
+b = 'command:run'
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
