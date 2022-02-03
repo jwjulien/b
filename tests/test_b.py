@@ -1,4 +1,17 @@
-"""Standalone unit tests for b, simply run this file"""
+# ======================================================================================================================
+#        File:  test_b.py
+#     Project:  B Bug Tracker
+# Description:  Distributed Bug Tracker Extention for Mercurial
+#      Author:  Jared Julien <jaredjulien@exsystems.net>
+#   Copyright:  (c) 2010-2011 Michael Diamond <michael@digitalgemstones.com>
+#               (c) 2022 Jared Julien, Nexteer Automotive
+# ---------------------------------------------------------------------------------------------------------------------
+"""Unit tests for b.
+
+To execute:
+
+    poetry run pytest tests
+"""
 
 
 # ======================================================================================================================
@@ -11,6 +24,10 @@ import pytest
 # Configures simple hashing in b
 os.environ['HG_B_SIMPLE_HASHING'] = 'true'
 import b
+import helpers
+import exceptions
+from extension import version
+from bugs_dict import BugsDict
 
 
 
@@ -23,8 +40,7 @@ def bd():
     dir = tempfile.TemporaryDirectory()
     cwd = os.getcwd()
     os.chdir(dir.name)
-    b._simple_hash = True
-    bd = b.BugsDict()
+    bd = BugsDict()
     yield bd
 
     # At the end of tests, ensure data is being written to bugs dict successfully.
@@ -32,7 +48,7 @@ def bd():
     bd.write()
 
     # Create a new dict which will load from disk.
-    disk = b.BugsDict()
+    disk = BugsDict()
     assert bd.list(alpha=True) == disk.list(alpha=True)
 
     os.chdir(cwd)
@@ -46,23 +62,22 @@ def bd():
 # ----------------------------------------------------------------------------------------------------------------------
 def test_helpers():
     """Tests the helper methods"""
-    # Many of these are effectively tested by other tests
-    # this test is for unusual edge cases.  If a helper method
+    # Many of these are effectively tested by other tests this test is for unusual edge cases.  If a helper method
     # has none, the method is simply run to ensure no exceptions
 
     #_datetime
-    b._datetime()
-    b._datetime(1310458238.24)
+    helpers.formatted_datetime()
+    helpers.formatted_datetime(1310458238.24)
 
     #_hash
-    b._hash("test")
+    helpers.hash("test")
 
     #_mkdir_p
-    b._mkdir_p('dir/to/test/_mkdir_p')
+    helpers.mkdir_p('dir/to/test/_mkdir_p')
 
     #_truth
-    assert b._truth('True')
-    assert not b._truth('False')
+    assert helpers.truth('True')
+    assert not helpers.truth('False')
 
     #_task_from_taskline
     good_list = [ # tasklines that should work
@@ -74,7 +89,7 @@ def test_helpers():
         "task | taskpart | id:1234"
     ]
     for tl in good_list:
-        task = b._task_from_taskline(tl)
+        task = helpers.task_from_taskline(tl)
         assert task['text'] == tl.rsplit('|',1)[0].strip()
 
     bad_list = [ # tasklines that should fail
@@ -83,17 +98,17 @@ def test_helpers():
     ]
     for tl in bad_list:
         with pytest.raises(IOError):
-            b._task_from_taskline(tl)
+            helpers.task_from_taskline(tl)
 
     #_tasklines_from_tasks
-    b._tasklines_from_tasks([{
+    helpers.tasklines_from_tasks([{
         'text': "task",
         'id':"4567"
     }])
 
     #_prefixes
     prefix_gen = ['a','abb','bbb','bbbb','cdef','cghi','defg','defh','e123456789']
-    assert b._prefixes(prefix_gen) == {
+    assert helpers.prefixes(prefix_gen) == {
         'a': 'a',
         'abb': 'ab',
         'defh': 'defh',
@@ -106,13 +121,13 @@ def test_helpers():
     }
 
     #_describe_print
-    assert b._describe_print(1, True, '*', '') == 'Found 1 open bug'
-    assert b._describe_print(10, True, '*', '') == 'Found 10 open bugs'
-    assert b._describe_print(11, False, '*', '') == 'Found 11 resolved bugs'
-    assert b._describe_print(12, True, '', '') == 'Found 12 open bugs owned by Nobody'
-    assert b._describe_print(13, True, 'Jack', '') == 'Found 13 open bugs owned by Jack'
-    assert b._describe_print(14, True, '', 'Word') == 'Found 14 open bugs owned by Nobody whose title contains Word'
-    assert b._describe_print(15, True, 'Jack', 'Word') == 'Found 15 open bugs owned by Jack whose title contains Word'
+    assert helpers.describe_print(1, True, '*', '') == 'Found 1 open bug'
+    assert helpers.describe_print(10, True, '*', '') == 'Found 10 open bugs'
+    assert helpers.describe_print(11, False, '*', '') == 'Found 11 resolved bugs'
+    assert helpers.describe_print(12, True, '', '') == 'Found 12 open bugs owned by Nobody'
+    assert helpers.describe_print(13, True, 'Jack', '') == 'Found 13 open bugs owned by Jack'
+    assert helpers.describe_print(14, True, '', 'Word') == 'Found 14 open bugs owned by Nobody whose title contains Word'
+    assert helpers.describe_print(15, True, 'Jack', 'Word') == 'Found 15 open bugs owned by Jack whose title contains Word'
 
 
 
@@ -125,9 +140,9 @@ def test_private_methods(bd):
     bd.add("another test") #afc8edc74a
 
     #__getitem__
-    with pytest.raises(b.UnknownPrefix):
+    with pytest.raises(exceptions.UnknownPrefix):
         bd['b']
-    with pytest.raises(b.AmbiguousPrefix):
+    with pytest.raises(exceptions.AmbiguousPrefix):
         bd['a']
     assert bd['a9']['text'] == 'test'
     assert bd['a94a']['text'] == 'test'
@@ -155,7 +170,7 @@ def test_private_methods(bd):
 def test_api():
     """Tests api functions that don't rely on Mercurial"""
     # Version
-    assert b.version() > b.version("0.6.1")
+    assert version() > version("0.6.1")
 
 
 
@@ -213,11 +228,11 @@ def test_assign(bd):
     assert bd.users() == 'Username: Open Bugs\nUser:   1\nA User: 2\n'
     bd.assign('9','u')
     assert bd.users() == 'Username: Open Bugs\nUser:   2\nA User: 1\n'
-    with pytest.raises(b.UnknownUser):
+    with pytest.raises(exceptions.UnknownUser):
         bd.assign('9','Newbie')
     bd.assign('9', 'Uther', True)
     assert bd.users() == 'Username: Open Bugs\nUser:   1\nUther:  1\nA User: 1\n'
-    with pytest.raises(b.AmbiguousUser):
+    with pytest.raises(exceptions.AmbiguousUser):
         bd.assign('9', 'u')
 
 
@@ -318,6 +333,7 @@ def test_list_filters(bd):
     assert bd.list(grep='D') == 'fb - ABCD\nb  - DEFG\nFound 2 open bugs whose title contains D'
     assert bd.list(grep='h') == 'f1 - GHIJ\nFound 1 open bug whose title contains h'
     assert bd.list(owner='u', grep='j') == 'f1 - GHIJ\n4  - JKLM\nFound 2 open bugs owned by User whose title contains j'
+
 
 
 

@@ -101,7 +101,7 @@ def task_from_taskline(taskline):
                 task[label.strip()] = data.strip()
         else:
             text = taskline.strip()
-            task = {'id': helpers.hash(text, str(time.time())),
+            task = {'id': hash(text, str(time.time())),
                     'text': text,
                     'owner': '',
                     'open': 'True',

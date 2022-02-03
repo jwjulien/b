@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "b"
-version = "1.0.1"
-description = "A distributed bug tracker extension for Mercurial"
+version = "1.1.0"
+description = "A distributed bug tracker extension for Mercurial now with the ability to standalone"
 authors = ["Jared Julien <jared.julien@nexteer.com>"]
 
 [tool.poetry.dependencies]

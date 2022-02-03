@@ -122,6 +122,8 @@ def execute_command(ui, repo, cmd=b'list', *args, **opts):
     """
     try:
         try:
+            # TODO: I think the args could be passed in to the standard command line processor reducing duplicated
+            # functionality here.  Would need to generate an abstraction for ui though.
             CLI(ui, repo).invoke(cmd, *args, **opts)
         except Exception:
             if 'HG_B_LOG_TRACEBACKS' in os.environ:
