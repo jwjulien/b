@@ -14,10 +14,10 @@
 import errno
 import os
 import tempfile
+import importlib_metadata
 from mercurial.error import Abort
 from mercurial import commands
 
-from b import __version__
 import exceptions
 import helpers
 import decorators
@@ -278,7 +278,7 @@ class CLI(object):
     @decorators.ValidOpts()
     @decorators.zero_args
     def version(self, _opts):
-        self.ui.write(("b Version %s\n" % __version__).encode('utf-8'))
+        self.ui.write(("b Version %s\n" % importlib_metadata.version('b')).encode('utf-8'))
 
 
 
