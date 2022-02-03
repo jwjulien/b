@@ -19,8 +19,8 @@ from argparse import ArgumentParser
 from configparser import ConfigParser
 import importlib_metadata
 
-from bugs_dict import BugsDict
-import exceptions
+from b.bugs_dict import BugsDict
+from b import exceptions
 
 
 

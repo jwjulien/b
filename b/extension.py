@@ -17,9 +17,9 @@ import traceback
 import importlib_metadata
 from mercurial import commands, registrar
 
-import exceptions
-import helpers
-from interface import CLI
+from b import exceptions
+from b import helpers
+from b.interface import CLI
 
 
 

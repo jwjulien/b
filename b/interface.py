@@ -18,10 +18,10 @@ import importlib_metadata
 from mercurial.error import Abort
 from mercurial import commands
 
-import exceptions
-import helpers
-import decorators
-from bugs_dict import BugsDict
+from b import exceptions
+from b import helpers
+from b import decorators
+from b.bugs_dict import BugsDict
 
 
 

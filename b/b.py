@@ -17,7 +17,7 @@ that doesn't integrate with Mercurial.
 import sys
 import os
 
-from command import run
+from b.command import run
 
 
 
