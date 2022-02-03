@@ -209,9 +209,11 @@ def run():
         # Handle the specified command.
         if args.command == 'add':
             print(bugs.add(args.text))
+            bugs.write()
 
         elif args.command == 'assign':
             print(bugs.assign(args.prefix, args.username, args.force))
+            bugs.write()
 
         elif args.command == 'comment':
             bugs.comment(args.prefix, args.text)
@@ -230,12 +232,15 @@ def run():
 
         elif args.command == 'rename':
             bugs.rename(args.prefix, args.text)
+            bugs.write()
 
         elif args.command == 'resolve':
             bugs.resolve(args.prefix)
+            bugs.write()
 
         elif args.command == 'reopen':
             bugs.reopen(args.prefix)
+            bugs.write()
 
         elif args.command == 'users':
             print(bugs.users())
@@ -251,8 +256,6 @@ def run():
         return 1
 
     else:
-        bugs.write()
-
         if 'edit' in args and args.edit:
             prefix = args.prefix if 'prefix' in args else bugs.last_added_id
             bugs.edit(prefix, args.editor)
