@@ -14,7 +14,7 @@
 import os
 import sys
 import traceback
-import importlib_metadata
+from importlib.metadata import distribution
 from mercurial import commands, registrar
 
 from b import exceptions
@@ -151,7 +151,7 @@ def version(given_version=None):
         callable(getattr(b, "version", None))
     returns false, that indicates a version before 0.6.2"""
     if given_version is None:
-        given_version = importlib_metadata.version('b')
+        given_version = distribution("b").version
     a, b, c = (int(ver) for ver in given_version.split('.') if ver.isdigit())
     return a, b, c
 

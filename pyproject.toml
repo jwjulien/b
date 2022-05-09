@@ -5,7 +5,7 @@ description = "A distributed bug tracker extension for Mercurial now with the ab
 authors = ["Jared Julien <jared.julien@nexteer.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.10"
 mercurial = "^6.0"
 
 [tool.poetry.dev-dependencies]

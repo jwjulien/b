@@ -17,7 +17,7 @@ Because this is standalone and does not involve Mercurial, the bits regarding sp
 import os
 from argparse import ArgumentParser
 from configparser import ConfigParser
-import importlib_metadata
+from importlib.metadata import distribution
 
 from b.bugs_dict import BugsDict
 from b import exceptions
@@ -246,7 +246,7 @@ def run():
             print(bugs.users())
 
         elif args.command == 'version':
-            print(f'b version {importlib_metadata.version("b")}')
+            print(f'b version {distribution("b").version}')
 
         else:
             raise exceptions.UnknownCommand(args.command)
