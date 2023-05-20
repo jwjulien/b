@@ -4,7 +4,7 @@ This version of `b` was forked from [foss.heptapod.net](https://foss.heptapod.ne
 
 - Support Python 3.x (mostly just adjustments to convert between byte strings and unicode strings).
 - Support custom, per-project template used when creating new "details" files for bugs.
-
+- Support a set of semi-custom templates for new bugs that can be specified from the command line when created.
 
 
 

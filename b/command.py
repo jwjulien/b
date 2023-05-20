@@ -29,6 +29,17 @@ from b import exceptions
 # ======================================================================================================================
 # Helper Functions
 # ----------------------------------------------------------------------------------------------------------------------
+def _add_arg_template(parser):
+    """Add an argument to specify the template to use when creating a new details file along with the command."""
+    parser.add_argument(
+        '-t',
+        '--template',
+        default='bug',
+        help='specify the bug template to use if creating new detail file - use `templates` command to list templates'
+    )
+
+
+# ----------------------------------------------------------------------------------------------------------------------
 def _add_arg_edit(parser):
     """The edit flag is common across several subparsers.  This helper sets the same attributes for each."""
     parser.add_argument(
@@ -38,6 +49,7 @@ def _add_arg_edit(parser):
         default=False,
         help='launch details editor for the bug'
     )
+    _add_arg_template(parser)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -136,6 +148,7 @@ def run():
 
     parser_edit = commands.add_parser('edit', help='launch the system editor to provide additional details')
     _add_arg_prefix(parser_edit)
+    _add_arg_template(parser_edit)
 
     parser_comment = commands.add_parser('comment', help='append the provided comment to the details of the bug')
     _add_arg_prefix(parser_comment)
@@ -190,6 +203,27 @@ def run():
     _add_arg_prefix(parser_id)
     _add_arg_edit(parser_id)
 
+    parser_templates = commands.add_parser('templates', help='list templates available when creating new bug reports')
+    parser_templates.add_argument(
+        '-d',
+        '--defaults',
+        action='store_true',
+        default=False,
+        help='list only the default templates - no custom templates from the .bugs directory of the project'
+    )
+    parser_templates.add_argument(
+        '-c',
+        '--custom',
+        metavar='TEMPLATE',
+        help='copy the specified template to the project directory for customization'
+    )
+    parser_templates.add_argument(
+        '-e',
+        '--edit',
+        metavar='TEMPLATE',
+        help='open the custom template for editing'
+    )
+
     commands.add_parser('version', help='output the version number of b and exit')
 
     # Parser arguments from the command line - with a special case for no command which defaults to "list".
@@ -203,7 +237,7 @@ def run():
         args.text = ' '.join(args.text).strip()
 
     # Load the bug dictionary from the bugs file.
-    bugs = BugsDict(args.dir, args.user)
+    bugs = BugsDict(args.dir, args.user, args.editor)
 
     try:
         # Handle the specified command.
@@ -216,13 +250,13 @@ def run():
             bugs.write()
 
         elif args.command == 'comment':
-            bugs.comment(args.prefix, args.text)
+            bugs.comment(args.prefix, args.text, args.template)
 
         elif args.command == 'details':
             print(bugs.details(args.prefix))
 
         elif args.command == 'edit':
-            bugs.edit(args.prefix, args.editor)
+            bugs.edit(args.prefix, args.template)
 
         elif args.command == 'id':
             print(bugs.id(args.prefix))
@@ -245,20 +279,31 @@ def run():
         elif args.command == 'users':
             print(bugs.users())
 
+        elif args.command == 'templates':
+            if args.custom:
+                bugs.customize_template(args.custom)
+            elif args.edit:
+                bugs.edit_template(args.edit)
+            else:
+                print(f"Available {'default ' if args.defaults else ''}bug templates:")
+                templates = bugs.list_templates(only_defaults=args.defaults)
+                for name in sorted(templates.keys()):
+                    print(f'- {name} ({templates[name]})')
+
         elif args.command == 'version':
             print(f'b version {distribution("b").version}')
 
         else:
             raise exceptions.UnknownCommand(args.command)
 
-    except exceptions.Error as err:
-        print(err.msg)
+    except exceptions.Error as error:
+        parser.error(str(error))
         return 1
 
     else:
         if 'edit' in args and args.edit:
             prefix = args.prefix if 'prefix' in args else bugs.last_added_id
-            bugs.edit(prefix, args.editor)
+            bugs.edit(prefix, args.template)
 
     return 0
 

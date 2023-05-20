@@ -1,0 +1,55 @@
+# Lines starting with '#' and empty sections are ignored.
+# It is recommended that comments be removed from sections as they are populated.
+# The use of [Markdown](https://www.markdownguide.org/basic-syntax/) formatting is highly encouraged.
+
+[reporter]
+# You name - the user who created this ticket.
+# Your Name <your.email@example.com>
+
+
+[details]
+# Additional details, thoughts, concerns, etc.
+
+
+[expected]
+# What you expected to happen.
+
+
+[actual]
+# What actually happened instead.
+
+
+[reproduce]
+# Steps needed to reproduce the bug.  For example:
+# 1. Go to <a>.
+# 2. Enter number into <b>.
+# 3. Press <c>.
+
+
+[paths]
+# Paths related to this bug.  If unknown, leave blank for now.
+# suggested format: REPO_PATH:path.to.specific.module:LINENUMBER(S)
+
+
+[environment]
+# What hardware/software/OS are you using?
+# What software version was this found on?
+#
+
+
+[stacktrace]
+# A stack trace, memory dump, or similar diagnostic info, if applicable.
+
+
+[owner]
+# A single person responsible for resolving this ticket.
+# Leave blank if you're not absolutely sure who's responsibility this is.
+# Owner Name <owner.email@examples.com>
+
+
+[comments]
+# Comments and updates (leave your name!).
+
+# Suggested format:
+# ### Commentor Name <commentor.email@example.com> on 2023-01-17 at 8:32 pm
+# Your comment text goes here.

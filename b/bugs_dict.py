@@ -13,9 +13,11 @@
 # ----------------------------------------------------------------------------------------------------------------------
 import os
 import re
+import shutil
 import subprocess
 import time
 from operator import itemgetter
+from typing import Dict
 
 from b import exceptions
 from b import helpers
@@ -36,63 +38,17 @@ class BugsDict(object):
     class ought to handle that change (normally to the repo root)
     """
 
-    def __init__(self, bugsdir='.bugs', user='', fast_add=False):
+    def __init__(self, bugsdir: str, user: str, editor: str, fast_add=False):
         """Initialize by reading the task files, if they exist."""
         self.bugsdir = bugsdir
         self.user = user
+        self.editor = editor
         self.fast_add = fast_add
         self.file = 'bugs'
         self.detailsdir = 'details'
         self.last_added_id = None
-        self.bugs = {}
-        path = os.path.join(os.path.expanduser(str(self.bugsdir)), 'template.txt')
-        if os.path.exists(path):
-            with open(path, 'r') as tfile:
-                self.init_details = tfile.read()
-        else:
-            # this is the default contents of the bugs directory.  If you'd like,
-            # you can modify this variable's contents.  Be sure to leave [comments]
-            # as the last field. Remember that storing metadata like [reporter] in
-            # the details file is not secure. it is recommended that you use
-            # Mercurial's excellent data-mining tools such as log and annotate to
-            # get such information.
-            self.init_details = '\n'.join([
-                "# Lines starting with '#' and sections without content",
-                "# are not displayed by a call to 'details'",
-                "#",
-                # "[reporter]",
-                # "The user who created this file",
-                # "# This field can be edited, and is just a convenience",
-                # "%s" % self.user,
-                # ""
-                "[paths]",
-                "# Paths related to this bug.",
-                "# suggested format: REPO_PATH:LINENUMBERS",
-                ""
-                "",
-                "[details]",
-                "# Additional details",
-                "",
-                "",
-                "[expected]\n# The expected result",
-                "",
-                "",
-                "[actual]",
-                "# What happened instead",
-                "",
-                "",
-                # "[stacktrace]",
-                # "# A stack trace or similar diagnostic info",
-                # "",
-                # "",
-                "[reproduce]",
-                "# Reproduction steps",
-                "",
-                "",
-                "[comments]",
-                "# Comments and updates - leave your name"
-            ])
 
+        self.bugs = {}
         path = os.path.join(os.path.expanduser(str(self.bugsdir)), self.file)
         if os.path.exists(path):
             with open(path, 'r') as tfile:
@@ -101,6 +57,77 @@ class BugsDict(object):
                 tasks = map(helpers.task_from_taskline, tls)
                 for task in tasks:
                     self.bugs[task['id']] = task
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def list_templates(self, only_defaults: bool = False, only_custom: bool = False) -> Dict[str, str]:
+        """Return a dictionary of available templates that can be used to create new bugs.
+
+        Arguments:
+            only_defaults: Indicates that only the default templates from within the b tool should be returned - none of
+                the custom templates from the .bugs directory.
+
+        Returns:
+            A dictionary where keys correspond to the names of the available templates and the values are the paths to
+            the corresponding template file(s).
+        """
+        assert not (only_defaults and only_custom)
+        templates = {}
+
+        def add_templates(base):
+            directory = os.path.join(base, 'templates')
+            if not os.path.exists(directory):
+                return
+            for template in os.listdir(directory):
+                path = os.path.join(directory, template)
+                name = os.path.splitext(template)[0]
+                templates[name] = path
+
+        # Start with a list of templates from the template folder within the `b` package.
+        if not only_custom:
+            add_templates('b')
+
+        # Include/override with templates from the project directory when specified.
+        if not only_defaults:
+            add_templates(os.path.expanduser(str(self.bugsdir)))
+
+        return templates
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def customize_template(self, template: str) -> None:
+        """Copy the specified template from the tool directory into the project '.bugs' directory and open the editor.
+        """
+        available = self.list_templates(only_defaults=True)
+        if template not in available:
+            message = f'The specified default template "{template}" does not exist.'
+            message += '\nInvoke `b templates -d` for a list of templates available for customization.'
+            raise exceptions.InvalidInput(message)
+        source = available[template]
+        destination_dir = os.path.join(os.path.expanduser(str(self.bugsdir)), 'templates')
+        destination = os.path.join(destination_dir, os.path.basename(source))
+        if os.path.exists(destination):
+            raise exceptions.InvalidCommand(f'The specified template "{template}" already exists at {destination}.')
+        os.makedirs(destination_dir, exist_ok=True)
+        shutil.copyfile(source, destination)
+        self._launch_editor(destination)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def edit_template(self, template: str) -> None:
+        """Open the specified custom template for editing.
+
+        Arguments:
+            template: The CUSTOM template name to be edited.
+        """
+        available = self.list_templates(only_custom=True)
+        if template not in available:
+            message = f'Custom template {template} does not exit.'
+            message += '\nDid you mean to `create` (-c) instead of `edit` (-e)?'
+            raise exceptions.InvalidInput(message)
+        path = available[template]
+        self._launch_editor(path)
+
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -145,15 +172,20 @@ class BugsDict(object):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def _make_details_file(self, full_id):
-        """ Create a details file for the given id."""
+    def _make_details_file(self, full_id, template):
+        """Create a details file for the given id."""
         (dirpath, path) = self._get_details_path(full_id)
         if not os.path.exists(dirpath):
             helpers.mkdir_p(dirpath)
+        templates = self.list_templates()
         if not os.path.exists(path):
-            with open(path, "w+") as f:
-                f.write(self.init_details)
+            try:
+                template_path = templates[template]
+            except KeyError as error:
+                raise exceptions.TemplateError(f'Template "{template}" does not exist') from error
+            shutil.copy(template_path, path)
         return path
+
 
 # ----------------------------------------------------------------------------------------------------------------------
     def _users_list(self):
@@ -317,30 +349,42 @@ class BugsDict(object):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def edit(self, prefix, editor):
+    def edit(self, prefix, template):
         """Allows the user to edit the details of the specified bug"""
         task = self[prefix]  # confirms prefix does exist
         path = self._get_details_path(task['id'])[1]
         if not os.path.exists(path):
-            self._make_details_file(task['id'])
-        subprocess.call("%s '%s'" % (editor, path), shell=True)
+            self._make_details_file(task['id'], template)
+        self._launch_editor(path)
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def _launch_editor(self, path: str) -> None:
+        """Open the specified file in the editor specified by the user.
+
+        Arguments:
+            path: The path to the file to be edited.
+        """
+        subprocess.call("%s \"%s\"" % (self.editor, path), shell=True)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def comment(self, prefix, comment):
+    def comment(self, prefix, comment, template):
         """Allows the user to add a comment to the bug without launching an editor.
 
         If they have a username set, the comment will show who made it."""
         task = self[prefix]  # confirms prefix does exist
         path = self._get_details_path(task['id'])[1]
         if not os.path.exists(path):
-            self._make_details_file(task['id'])
+            self._make_details_file(task['id'], template)
 
-        comment = "On: %s\n%s" % (helpers.formatted_datetime(), comment)
-
+        # If the user has a known name, prepend that to the comment.
         if self.user != '':
             comment = "By: %s\n%s" % (self.user, comment)
 
+        # Prepend a date/time to the comment.
+        comment = "On: %s\n%s" % (helpers.formatted_datetime(), comment)
+
+        # Write the comment out to the end of the file.  This is why the comments section must be at the end.
         with open(path, "a") as f:
             f.write("\n\n" + comment)
 

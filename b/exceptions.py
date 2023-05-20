@@ -106,6 +106,11 @@ class InvalidInput(Error):
         self.reason = reason
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+class TemplateError(Error):
+    """Raised when the specified template does not exist."""
+
+
 
 
 # End of File
