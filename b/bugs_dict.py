@@ -1,10 +1,10 @@
 # ======================================================================================================================
 #        File:  bugs_dict.py
 #     Project:  B Bug Tracker
-# Description:  Distributed Bug Tracker Extention for Mercurial
+# Description:  Distributed Bug Tracker Extension for Mercurial
 #      Author:  Jared Julien <jaredjulien@exsystems.net>
 #   Copyright:  (c) 2010-2011 Michael Diamond <michael@digitalgemstones.com>
-#               (c) 2022 Jared Julien, Nexteer Automotive
+#               (c) 2022-2023 Jared Julien <jaredjulien@exsystems.net>
 # ---------------------------------------------------------------------------------------------------------------------
 """b's business logic and programatic API."""
 

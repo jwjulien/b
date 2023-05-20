@@ -1,8 +1,9 @@
-b, A distributed bug tracker extension for Mercurial
+b, A distributed bug tracker extension (originally for Mercurial)
 ========================================================================================================================
 This version of `b` was forked from [foss.heptapod.net](https://foss.heptapod.net/mercurial/b) and some light modifications were made to:
 
 - Support Python 3.x (mostly just adjustments to convert between byte strings and unicode strings).
+- Support invocation from the command line, outside of Mercurial, to allow use with other version control systems.
 - Support custom, per-project template used when creating new "details" files for bugs.
 - Support a set of semi-custom templates for new bugs that can be specified from the command line when created.
 
