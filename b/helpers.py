@@ -35,7 +35,7 @@ def formatted_datetime(timestamp=None):
         t = datetime.fromtimestamp(float(timestamp))
     else:
         t = datetime.now()
-    return t.strftime("%A, %B %d %Y %I:%M%p")
+    return t.strftime("%A, %B %d, %Y at %I:%M %p")
 
 
 # ----------------------------------------------------------------------------------------------------------------------

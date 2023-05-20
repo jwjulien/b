@@ -41,15 +41,8 @@
 # A stack trace, memory dump, or similar diagnostic info, if applicable.
 
 
-[owner]
-# A single person responsible for resolving this ticket.
-# Leave blank if you're not absolutely sure who's responsibility this is.
-# Owner Name <owner.email@examples.com>
-
-
 [comments]
 # Comments and updates (leave your name!).
-
 # Suggested format:
-# ### Commentor Name <commentor.email@example.com> on 2023-01-17 at 8:32 pm
+# -----[ Commentor Name <commentor.email@example.com> on Saturday, May 20, 2023 at 8:32 pm ]-----
 # Your comment text goes here.

@@ -102,7 +102,7 @@ If you need to record more detail than just a title, edit
 
     $ hg b edit ID
 
-will launch your default commit editor with a pre-populated set of sections you can fill out.  Nothing is mandatory, and you can create or delete new sections as you'd like.  Comments (see below) are appended to the end of the file, so it is suggested you leave the comments section last.
+will launch your default commit editor with a pre-populated set of sections you can fill out.  Nothing is mandatory, and you can create or delete new sections as you'd like.
 
 To view the details of a bug you call:
 

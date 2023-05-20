@@ -368,6 +368,7 @@ class BugsDict(object):
             self._make_details_file(task['id'], template)
         self._launch_editor(path)
 
+
 # ----------------------------------------------------------------------------------------------------------------------
     def _launch_editor(self, path: str) -> None:
         """Open the specified file in the editor specified by the user.
@@ -388,16 +389,32 @@ class BugsDict(object):
         if not os.path.exists(path):
             self._make_details_file(task['id'], template)
 
-        # If the user has a known name, prepend that to the comment.
+        title = helpers.formatted_datetime()
+
+        # If the user has a known name, prepend that to the title.
         if self.user != '':
-            comment = "By: %s\n%s" % (self.user, comment)
+            title = f'{self.user} on {title}'
 
-        # Prepend a date/time to the comment.
-        comment = "On: %s\n%s" % (helpers.formatted_datetime(), comment)
+        # Assemble the comment.
+        comment = f'\n-----[ {title} ]-----\n{comment}\n\n'
 
-        # Write the comment out to the end of the file.  This is why the comments section must be at the end.
-        with open(path, "a") as f:
-            f.write("\n\n" + comment)
+        # Insert the comment into the comments section.
+        with open(path, "r") as handle:
+            contents = handle.read()
+
+        # If a comments section exists, then insert this comment at the end of that section.
+        if '\n[comments]\n' in contents:
+            find = r'(\n\[comments\]\n.+?)\n*(\n\[.+\]\n|\Z)'
+            replace = fr'\1\n\n{comment}\2'
+            contents = re.sub(find, replace, contents, flags=re.DOTALL | re.MULTILINE)
+
+            with open(path, "w") as handle:
+                handle.write(contents)
+
+        # If no comments section exists then append it instead.
+        else:
+            with open(path, 'a') as handle:
+                handle.write(f'\n\n[comments]{comment}')
 
 
 # ----------------------------------------------------------------------------------------------------------------------
