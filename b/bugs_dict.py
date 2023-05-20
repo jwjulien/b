@@ -250,9 +250,20 @@ class BugsDict(object):
 # ----------------------------------------------------------------------------------------------------------------------
     def add(self, text):
         """Adds a bug with no owner to the task list."""
-        task_id = helpers.hash(text, self.user, str(time.time()))
-        self.bugs[task_id] = {'id': task_id, 'open': 'True', 'owner': self.user,
-                              'text': text, 'time': time.time()}
+        # Generate a new ID for this bug and ensure no possible collisions can occur, even if unlikely.
+        while True:
+            task_id = helpers.hash(text, self.user, str(time.time()))
+            if task_id not in self.bugs:
+                break
+
+        self.bugs[task_id] = {
+            'id': task_id,
+            'open': 'True',
+            'owner': self.user,
+            'text': text,
+            'time': time.time()
+        }
+
         self.last_added_id = task_id
         if self.fast_add:
             short_task_id = "%s..." % task_id[:10]
