@@ -21,7 +21,7 @@ from mercurial import commands
 from b import exceptions
 from b import helpers
 from b import decorators
-from b.bugs_dict import BugsDict
+from b.bugs import Bugs
 
 
 
@@ -78,7 +78,7 @@ class CLI(object):
 # ----------------------------------------------------------------------------------------------------------------------
     def bd(self, opts):
         if self._bd:
-            raise Exception("Don't construct the BugsDict more than once.")
+            raise Exception("Don't construct the Bugs more than once.")
 
         os.chdir(self.repo.root)
 
@@ -99,7 +99,7 @@ class CLI(object):
             os.chdir(self._revpath)
 
         fast_add = self.ui.configbool(b"bugs", b"fast_add", False)
-        self._bd = BugsDict(self.bugsdir, self.user, fast_add)
+        self._bd = Bugs(self.bugsdir, self.user, fast_add)
         return self._bd
 
 

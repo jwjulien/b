@@ -1,5 +1,5 @@
 # ======================================================================================================================
-#        File:  bugs_dict.py
+#        File:  bugs.py
 #     Project:  B Bug Tracker
 # Description:  Distributed Bug Tracker Extension for Mercurial
 #      Author:  Jared Julien <jaredjulien@exsystems.net>
@@ -26,9 +26,9 @@ from b import helpers
 
 
 # ======================================================================================================================
-# BugsDict Class
+# Bugs Class
 # ----------------------------------------------------------------------------------------------------------------------
-class BugsDict(object):
+class Bugs(object):
     """A set of bugs, issues, and tasks, both finished and unfinished, for a given repository.
 
     The list's file is read from disk when initialized. The items can be written back out to disk with the write()
@@ -212,7 +212,7 @@ class BugsDict(object):
     def _get_user(self, user, force=False):
         """Given a user prefix, returns the appropriate username, or fails if the correct user cannot be identified.
 
-        'me' is a special username which maps to the username specified when constructing the BugsDict.  'Nobody' (and
+        'me' is a special username which maps to the username specified when constructing the Bugs.  'Nobody' (and
         prefixes of 'Nobody') is a special username which maps internally to the empty string, indicating no assignment.
         If force is true, the user 'Nobody' is used.  This is unadvisable, avoid forcing the username 'Nobody'.
 

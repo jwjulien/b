@@ -1,5 +1,5 @@
 [paths]
-b.bugs_dict
+b.bugs
 
 [details]
 It would be nice if the tool was smart enough that the comments section

@@ -27,7 +27,7 @@ import b
 import helpers
 import exceptions
 from extension import version
-from bugs_dict import BugsDict
+from bugs import Bugs
 
 
 
@@ -40,7 +40,7 @@ def bd():
     dir = tempfile.TemporaryDirectory()
     cwd = os.getcwd()
     os.chdir(dir.name)
-    bd = BugsDict()
+    bd = Bugs()
     yield bd
 
     # At the end of tests, ensure data is being written to bugs dict successfully.
@@ -48,7 +48,7 @@ def bd():
     bd.write()
 
     # Create a new dict which will load from disk.
-    disk = BugsDict()
+    disk = Bugs()
     assert bd.list(alpha=True) == disk.list(alpha=True)
 
     os.chdir(cwd)

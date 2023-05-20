@@ -28,7 +28,7 @@ import b
 import helpers
 import exceptions
 from extension import version
-from bugs_dict import BugsDict
+from bugs import Bugs
 
 
 

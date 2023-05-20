@@ -19,7 +19,7 @@ from argparse import ArgumentParser
 from configparser import ConfigParser
 from importlib.metadata import distribution
 
-from b.bugs_dict import BugsDict
+from b.bugs import Bugs
 from b import exceptions
 
 
@@ -237,7 +237,7 @@ def run():
         args.text = ' '.join(args.text).strip()
 
     # Load the bug dictionary from the bugs file.
-    bugs = BugsDict(args.dir, args.user, args.editor)
+    bugs = Bugs(args.dir, args.user, args.editor)
 
     try:
         # Handle the specified command.
