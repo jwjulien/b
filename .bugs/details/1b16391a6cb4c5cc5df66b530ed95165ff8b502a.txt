@@ -1,0 +1,26 @@
+[paths]
+b.bugs_dict
+
+[details]
+It would be nice if the tool was smart enough that the comments section
+didn't have to be at the end of the file.
+
+
+[expected]
+Comments could be added to the middle of the file.
+
+
+[actual]
+Comments are always appended to the end of the file, no matter what
+section that is.
+
+
+[reproduce]
+1. Create a bug and launch the editor.
+2. Append a new section called "[test]" to the end of the bug detail file.
+3. Use the comment command to add a new comment.
+4. Observe that the new comment has been added to the "test" section.
+
+
+[comments]
+# Comments and updates - leave your name
