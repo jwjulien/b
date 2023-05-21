@@ -19,6 +19,9 @@ import time
 from operator import itemgetter
 from typing import Dict
 
+from rich import print
+from rich.console import Console
+
 from b import exceptions
 from b import helpers
 
@@ -38,12 +41,11 @@ class Bugs(object):
     class ought to handle that change (normally to the repo root)
     """
 
-    def __init__(self, bugsdir: str, user: str, editor: str, fast_add=False):
+    def __init__(self, bugsdir: str, user: str, editor: str):
         """Initialize by reading the task files, if they exist."""
         self.bugsdir = bugsdir
         self.user = user
         self.editor = editor
-        self.fast_add = fast_add
         self.file = 'bugs'
         self.detailsdir = 'details'
         self.last_added_id = None
@@ -244,7 +246,7 @@ class Bugs(object):
 # ----------------------------------------------------------------------------------------------------------------------
     def id(self, prefix):
         """ Given a prefix, returns the full id of that bug."""
-        return self[prefix]['id']
+        print(self[prefix]['id'])
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -265,12 +267,10 @@ class Bugs(object):
         }
 
         self.last_added_id = task_id
-        if self.fast_add:
-            short_task_id = "%s..." % task_id[:10]
-        else:
-            prefix = helpers.prefixes(self.bugs.keys())[task_id]
-            short_task_id = "%s:%s" % (prefix, task_id[len(prefix):10])
-        return "Added bug %s" % short_task_id
+        prefix = helpers.prefixes(self.bugs.keys())[task_id]
+        short_task_id = "[bold cyan]%s[/]:[yellow]%s[/]" % (prefix, task_id[len(prefix):10])
+        self.write()
+        print(f"Added bug {short_task_id}")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -299,10 +299,9 @@ class Bugs(object):
             ulen = max([len(user) for user in users.keys()]) + 1
         else:
             ulen = 0
-        out = "Username: Open Bugs\n"
+        print("Username: Open Bugs")
         for (user, count) in users.items():
-            out += "%s: %s\n" % (user, str(count).rjust(ulen - len(user)))
-        return out
+            print(f"{user}: {str(count).rjust(ulen - len(user))}")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -315,14 +314,16 @@ class Bugs(object):
         task = self[prefix]
         user = self._get_user(user, force)
         task['owner'] = user
+
         if user == '':
             user = 'Nobody'
-        return "Assigned %s: '%s' to %s" % (prefix, task['text'], user)
+
+        print(f"Assigned {prefix}: '{task['text']}' to {user}")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
     def details(self, prefix):
-        """ Provides additional details on the requested bug.
+        """Provides additional details on the requested bug.
 
         Metadata (like owner, and creation time) which are not stored in the details file are displayed along with the
         details.
@@ -330,33 +331,48 @@ class Bugs(object):
         Sections (denoted by a [text] line) with no content are not displayed.
         """
         task = self[prefix]  # confirms prefix does exist
+
+        resolved = not helpers.truth(task['open'])
+        print(f"Title: [{'green' if resolved else 'red'}]{task['text']}")
+
+        print(f"ID: [bold cyan]{prefix}[/]:[yellow]{task['id'][len(prefix):]}")
+
+        print(f"Status: [{'green' if resolved else 'red'}]{'Resolved' if resolved else 'Open'}")
+
+        if task['owner'] != '':
+            print(f"Owned by: [magenta]{task['owner']}[/]")
+
+        Console().print(f"Filed on: {helpers.formatted_datetime(task['time'])}", highlight=False)
+
         path = self._get_details_path(task['id'])[1]
         if os.path.exists(path):
             with open(path) as f:
-                text = f.read()
+                details = f.read()
 
-            text = re.sub("(?m)^#.*\n?", "", text)
+            # Strip comments.
+            details = re.sub("(?m)^#.*\n?", "", details)
 
+            # Remove empty sections.
             while True:
-                oldtext = text
-                retext = re.sub("\[\w+\]\s+\[", "[", text)
-                text = retext
-                if oldtext == retext:
+                previous = details
+                details = re.sub("\[\w+\]\s+\[", "[", details)
+                if previous == details:
                     break
 
-            text = re.sub("\[\w+\]\s*$", "", text)
+            # Remove, possibly, empty last section.
+            details = re.sub("\[\w+\]\s*$", "", details)
+
+            # Escape the section headers for Rich and add some color.
+            details = '\n' + details
+            details = re.sub('\n\[(.+?)\]', r'\n[blue]\\[\1][/]', details)
+
+            # Reduce many (3+) blank lines down to two maximum.
+            details = re.sub('\n\n+', '\n\n', details)
+
+            print(details.strip())
         else:
-            text = 'No Details File Found.'
+            print('No additional details file found.')
 
-        header = "Title: %s\nID: %s\n" % (task['text'], task['id'])
-        if not helpers.truth(task['open']):
-            header = header + "*Resolved* "
-        if task['owner'] != '':
-            header = header + ("Owned By: %s\n" % task['owner'])
-        header = header + ("Filed On: %s\n\n" % helpers.formatted_datetime(task['time']))
-        text = header + text
-
-        return text.strip()
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -447,21 +463,25 @@ class Bugs(object):
                  if helpers.truth(task['open']) == is_open
                  and (owner == '*' or owner == task['owner'])
                  and (grep == '' or grep.lower() in task['text'].lower())]
+
         if len(small) > 0:
             plen = max([len(task['prefix']) for task in small])
         else:
             plen = 0
-        out = ''
+
         if alpha:
             small = sorted(small, key=lambda x: x['text'].lower())
+
         if chrono:
             small = sorted(small, key=itemgetter('time'))
+
         for task in small:
-            line = '%s - %s' % (task['prefix'].ljust(plen), task['text'])
+            line = '[bold cyan]%s[/bold cyan] - %s' % (task['prefix'].rjust(plen), task['text'])
             if 0 < truncate < len(line):
                 line = line[:truncate - 4] + '...'
-            out += line + '\n'
-        return out + helpers.describe_print(len(small), is_open, owner, grep)
+            print(line)
+
+        print(helpers.describe_print(len(small), is_open, owner, grep))
 
 
 

@@ -17,7 +17,10 @@ Because this is standalone and does not involve Mercurial, the bits regarding sp
 import os
 from argparse import ArgumentParser
 from configparser import ConfigParser
-from importlib.metadata import distribution
+from importlib import metadata
+
+from rich import print
+from rich_argparse import RichHelpFormatter
 
 from b.bugs import Bugs
 from b import exceptions
@@ -95,7 +98,9 @@ def _get_user():
 # Command Line Processing
 # ----------------------------------------------------------------------------------------------------------------------
 def run():
-    parser = ArgumentParser(description="A simplistic, distributed bug tracing utility.")
+    description = metadata.metadata('b')['Summary']
+    version = metadata.version('b')
+    parser = ArgumentParser(description=description, formatter_class=RichHelpFormatter)
     parser.add_argument(
         '-d',
         '--dir',
@@ -116,18 +121,24 @@ def run():
     )
     commands = parser.add_subparsers(title='command', dest='command')
 
-    parser_add = commands.add_parser('add', help='adds a new open bug to the database')
+    parser_add = commands.add_parser('add',
+                                     help='adds a new open bug to the database',
+                                     formatter_class=RichHelpFormatter)
     _add_arg_text(parser_add, 'title text for the new bug')
     _add_arg_edit(parser_add)
 
-    parser_rename = commands.add_parser('rename', help='rename the bug denoted by PREFIX to TEXT')
+    parser_rename = commands.add_parser('rename',
+                                        help='rename the bug denoted by PREFIX to TEXT',
+                                        formatter_class=RichHelpFormatter)
     _add_arg_prefix(parser_rename)
     _add_arg_text(parser_rename, 'new title text for the bug')
     _add_arg_edit(parser_rename)
 
     commands.add_parser('users', help='display a list of all users and the number of open bugs assigned to each')
 
-    parser_assign = commands.add_parser('assign', help='assign bug denoted by PREFIX to username')
+    parser_assign = commands.add_parser('assign',
+                                        help='assign bug denoted by PREFIX to username',
+                                        formatter_class=RichHelpFormatter)
     _add_arg_prefix(parser_assign)
     parser_assign.add_argument(
         'username',
@@ -142,28 +153,40 @@ def run():
     )
     _add_arg_edit(parser_assign)
 
-    parser_details = commands.add_parser('details', help='print the extended details of the specified bug')
+    parser_details = commands.add_parser('details',
+                                         help='print the extended details of the specified bug',
+                                         formatter_class=RichHelpFormatter)
     _add_arg_prefix(parser_details)
     _add_arg_edit(parser_details)
 
-    parser_edit = commands.add_parser('edit', help='launch the system editor to provide additional details')
+    parser_edit = commands.add_parser('edit',
+                                      help='launch the system editor to provide additional details',
+                                      formatter_class=RichHelpFormatter)
     _add_arg_prefix(parser_edit)
     _add_arg_template(parser_edit)
 
-    parser_comment = commands.add_parser('comment', help='append the provided comment to the details of the bug')
+    parser_comment = commands.add_parser('comment',
+                                         help='append the provided comment to the details of the bug',
+                                         formatter_class=RichHelpFormatter)
     _add_arg_prefix(parser_comment)
     _add_arg_text(parser_comment, 'comment text to append')
     _add_arg_edit(parser_comment)
 
-    parser_resolve = commands.add_parser('resolve', help='mark the specified bug as resolved')
+    parser_resolve = commands.add_parser('resolve',
+                                         help='mark the specified bug as resolved',
+                                         formatter_class=RichHelpFormatter)
     _add_arg_prefix(parser_resolve)
     _add_arg_edit(parser_resolve)
 
-    parser_reopen = commands.add_parser('reopen', help='mark the specified bug as open')
+    parser_reopen = commands.add_parser('reopen',
+                                        help='mark the specified bug as open',
+                                        formatter_class=RichHelpFormatter)
     _add_arg_prefix(parser_reopen)
     _add_arg_edit(parser_reopen)
 
-    parser_list = commands.add_parser('list', help='list all bugs according to the specified filters')
+    parser_list = commands.add_parser('list',
+                                      help='list all bugs according to the specified filters',
+                                      formatter_class=RichHelpFormatter)
     parser_list.add_argument(
         '-r',
         '--resolved',
@@ -199,11 +222,15 @@ def run():
         help='list bugs chronologically'
     )
 
-    parser_id = commands.add_parser('id', help='given a prefix return the full ID of a bug')
+    parser_id = commands.add_parser('id',
+                                    help='given a prefix return the full ID of a bug',
+                                    formatter_class=RichHelpFormatter)
     _add_arg_prefix(parser_id)
     _add_arg_edit(parser_id)
 
-    parser_templates = commands.add_parser('templates', help='list templates available when creating new bug reports')
+    parser_templates = commands.add_parser('templates',
+                                           help='list templates available when creating new bug reports',
+                                           formatter_class=RichHelpFormatter)
     parser_templates.add_argument(
         '-d',
         '--defaults',
@@ -224,7 +251,9 @@ def run():
         help='open the custom template for editing'
     )
 
-    commands.add_parser('version', help='output the version number of b and exit')
+    commands.add_parser('version',
+                        help='output the version number of b and exit',
+                        formatter_class=RichHelpFormatter)
 
     # Parser arguments from the command line - with a special case for no command which defaults to "list".
     args, extras = parser.parse_known_args()
@@ -242,27 +271,26 @@ def run():
     try:
         # Handle the specified command.
         if args.command == 'add':
-            print(bugs.add(args.text))
-            bugs.write()
+            bugs.add(args.text)
 
         elif args.command == 'assign':
-            print(bugs.assign(args.prefix, args.username, args.force))
+            bugs.assign(args.prefix, args.username, args.force)
             bugs.write()
 
         elif args.command == 'comment':
             bugs.comment(args.prefix, args.text, args.template)
 
         elif args.command == 'details':
-            print(bugs.details(args.prefix))
+            bugs.details(args.prefix)
 
         elif args.command == 'edit':
             bugs.edit(args.prefix, args.template)
 
         elif args.command == 'id':
-            print(bugs.id(args.prefix))
+            bugs.id(args.prefix)
 
         elif args.command is None or args.command == 'list':
-            print(bugs.list(not args.resolved, args.owner, args.grep, args.alpha, args.chrono))
+            bugs.list(not args.resolved, args.owner, args.grep, args.alpha, args.chrono)
 
         elif args.command == 'rename':
             bugs.rename(args.prefix, args.text)
@@ -277,7 +305,7 @@ def run():
             bugs.write()
 
         elif args.command == 'users':
-            print(bugs.users())
+            bugs.users()
 
         elif args.command == 'templates':
             if args.custom:
@@ -291,7 +319,7 @@ def run():
                     print(f'- {name} ({templates[name]})')
 
         elif args.command == 'version':
-            print(f'b version {distribution("b").version}')
+            print(f'b version {version}')
 
         else:
             raise exceptions.UnknownCommand(args.command)

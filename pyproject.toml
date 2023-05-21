@@ -7,6 +7,8 @@ authors = ["Jared Julien <jaredjulien@exsystems.net>"]
 [tool.poetry.dependencies]
 python = "^3.10"
 mercurial = "^6.0"
+rich = "^13.3.5"
+rich-argparse = "^1.1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
