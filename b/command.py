@@ -18,11 +18,13 @@ import os
 from argparse import ArgumentParser
 from configparser import ConfigParser
 from importlib import metadata
+import getpass
 
 from rich import print
 from rich_argparse import RichHelpFormatter
 
 from b.bugs import Bugs
+from b.settings import Settings
 from b import exceptions
 
 
@@ -74,24 +76,6 @@ def _add_arg_text(parser, help):
     )
 
 
-# ----------------------------------------------------------------------------------------------------------------------
-def _get_user():
-    """Attempt to fetch and return the user's name from the mercurial.ini file.
-
-    This has ties to b originally being a part of Mercurial and the file is most likely going to be present on systems
-    where b is being used, even as this version not associated with Mercurial.  It may be a better option for b to make
-    use of a separate config file, but that change can happen later.
-
-    If the mercurial.ini isn't found or if the user's name is not set then a blank string is returned instead.
-    """
-    path = os.path.expanduser(os.path.join('~', 'mercurial.ini'))
-    if os.path.exists(path):
-        parser = ConfigParser()
-        parser.read(path)
-        return parser.get('ui', 'username', fallback='')
-    return ''
-
-
 
 
 # ======================================================================================================================
@@ -101,24 +85,6 @@ def run():
     description = metadata.metadata('b')['Summary']
     version = metadata.version('b')
     parser = ArgumentParser(description=description, formatter_class=RichHelpFormatter)
-    parser.add_argument(
-        '-d',
-        '--dir',
-        default='.bugs',
-        help='directory containing the bugs (default: .bugs)'
-    )
-    parser.add_argument(
-        '-u',
-        '--user',
-        default=_get_user(),
-        help='your username - attempts to extract from mercurial.ini if not provided'
-    )
-    parser.add_argument(
-        '-E',
-        '--editor',
-        default='notepad' if os.name == 'nt' else 'nano',
-        help='specify the editor that you would like to use when editing bug details'
-    )
     commands = parser.add_subparsers(title='command', dest='command')
 
     parser_add = commands.add_parser('add',
@@ -251,6 +217,27 @@ def run():
         help='open the custom template for editing'
     )
 
+    config_parser = commands.add_parser('config',
+                                        help='adjust configurations - default lists all',
+                                        formatter_class=RichHelpFormatter)
+    config_parser.add_argument(
+        'key',
+        nargs='?',
+        help='the name of the setting'
+    )
+    config_parser.add_argument(
+        'value',
+        nargs='?',
+        help='the value of the setting to set'
+    )
+    config_parser.add_argument(
+        '-u',
+        '--unset',
+        action='store_true',
+        default=False,
+        help='restore variable to default value'
+    )
+
     commands.add_parser('version',
                         help='output the version number of b and exit',
                         formatter_class=RichHelpFormatter)
@@ -265,73 +252,101 @@ def run():
     if 'text' in args:
         args.text = ' '.join(args.text).strip()
 
-    # Load the bug dictionary from the bugs file.
-    bugs = Bugs(args.dir, args.user, args.editor)
+    defaults = {
+        'general.editor': 'notepad' if os.name == 'nt' else 'nano',
+        'general.dir': '.bugs',
+        'general.user': getpass.getuser()
+    }
+    with Settings(defaults) as settings:
+        # Load the bug dictionary from the bugs file.
+        bugs = Bugs(settings.get('dir'), settings.get('user'), settings.get('editor'))
 
-    try:
-        # Handle the specified command.
-        if args.command == 'add':
-            bugs.add(args.text)
+        try:
+            # Handle the specified command.
+            if args.command == 'add':
+                bugs.add(args.text)
 
-        elif args.command == 'assign':
-            bugs.assign(args.prefix, args.username, args.force)
-            bugs.write()
+            elif args.command == 'assign':
+                bugs.assign(args.prefix, args.username, args.force)
+                bugs.write()
 
-        elif args.command == 'comment':
-            bugs.comment(args.prefix, args.text, args.template)
+            elif args.command == 'comment':
+                bugs.comment(args.prefix, args.text, args.template)
 
-        elif args.command == 'details':
-            bugs.details(args.prefix)
+            elif args.command == 'details':
+                bugs.details(args.prefix)
 
-        elif args.command == 'edit':
-            bugs.edit(args.prefix, args.template)
+            elif args.command == 'edit':
+                bugs.edit(args.prefix, args.template)
 
-        elif args.command == 'id':
-            bugs.id(args.prefix)
+            elif args.command == 'id':
+                bugs.id(args.prefix)
 
-        elif args.command is None or args.command == 'list':
-            bugs.list(not args.resolved, args.owner, args.grep, args.alpha, args.chrono)
+            elif args.command is None or args.command == 'list':
+                bugs.list(not args.resolved, args.owner, args.grep, args.alpha, args.chrono)
 
-        elif args.command == 'rename':
-            bugs.rename(args.prefix, args.text)
-            bugs.write()
+            elif args.command == 'rename':
+                bugs.rename(args.prefix, args.text)
+                bugs.write()
 
-        elif args.command == 'resolve':
-            bugs.resolve(args.prefix)
-            bugs.write()
+            elif args.command == 'resolve':
+                bugs.resolve(args.prefix)
+                bugs.write()
 
-        elif args.command == 'reopen':
-            bugs.reopen(args.prefix)
-            bugs.write()
+            elif args.command == 'reopen':
+                bugs.reopen(args.prefix)
+                bugs.write()
 
-        elif args.command == 'users':
-            bugs.users()
+            elif args.command == 'users':
+                bugs.users()
 
-        elif args.command == 'templates':
-            if args.custom:
-                bugs.customize_template(args.custom)
-            elif args.edit:
-                bugs.edit_template(args.edit)
+            elif args.command == 'templates':
+                if args.custom:
+                    bugs.customize_template(args.custom)
+                elif args.edit:
+                    bugs.edit_template(args.edit)
+                else:
+                    print(f"Available {'default ' if args.defaults else ''}bug templates:")
+                    templates = bugs.list_templates(only_defaults=args.defaults)
+                    for name in sorted(templates.keys()):
+                        print(f'- {name} ({templates[name]})')
+
+            elif args.command == 'config':
+                if args.unset:
+                    if not args.key:
+                        raise exceptions.Error('Provide a key to be unset')
+                    settings.unset(args.key)
+                elif args.value is not None:
+                    # Set the value of the key
+                    settings.set(args.key, args.value)
+                    print(f'"{args.key}" set to "{args.value}"')
+                elif args.key is not None:
+                    # Fetch the value of the key.
+                    print(args.key, '=', settings.get(args.key))
+                else:
+                    # List the current settings.
+                    if settings.exists:
+                        print(f'Config file is located at {settings.file}')
+                    else:
+                        print('All settings are currently defaults')
+                    for key, value in settings.list():
+                        print(f'{key}={value}')
+
+
+            elif args.command == 'version':
+                print(f'b version {version}')
+
             else:
-                print(f"Available {'default ' if args.defaults else ''}bug templates:")
-                templates = bugs.list_templates(only_defaults=args.defaults)
-                for name in sorted(templates.keys()):
-                    print(f'- {name} ({templates[name]})')
+                raise exceptions.UnknownCommand(args.command)
 
-        elif args.command == 'version':
-            print(f'b version {version}')
+        except exceptions.Error as error:
+            parser.error(str(error))
+            return 1
 
         else:
-            raise exceptions.UnknownCommand(args.command)
-
-    except exceptions.Error as error:
-        parser.error(str(error))
-        return 1
-
-    else:
-        if 'edit' in args and args.edit:
-            prefix = args.prefix if 'prefix' in args else bugs.last_added_id
-            bugs.edit(prefix, args.template)
+            if 'edit' in args and args.edit:
+                prefix = args.prefix if 'prefix' in args else bugs.last_added_id
+                bugs.edit(prefix, args.template)
 
     return 0
 
