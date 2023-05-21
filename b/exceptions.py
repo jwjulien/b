@@ -1,7 +1,7 @@
 # ======================================================================================================================
 #        File:  exceptions.py
 #     Project:  B Bug Tracker
-# Description:  Distributed Bug Tracker Extension for Mercurial
+# Description:  Simple bug tracker
 #      Author:  Jared Julien <jaredjulien@exsystems.net>
 #   Copyright:  (c) 2010-2011 Michael Diamond <michael@digitalgemstones.com>
 #               (c) 2022-2023 Jared Julien <jaredjulien@exsystems.net>
@@ -17,15 +17,6 @@ class Error(Exception):
     def __init__(self, msg):
         super(Error, self).__init__(msg)
         self.msg = msg
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-class RequiresPrefix(Error):
-    """Raised by CLI when a prefix is required."""
-
-    def __init__(self):
-        super().__init__("You need to provide an issue prefix.  Run list to get a unique prefix for the bug you are "
-            "looking for.")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -66,15 +57,6 @@ class UnknownUser(Error):
         super().__init__("The provided user - %s - did not match any users in the system. "
             "Use -f to force the creation of a new user." % user)
         self.user = user
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-class AmbiguousCommand(Error):
-    """Indicates the given command prefix matches more than one command."""
-
-    def __init__(self, cmds):
-        super().__init__("Command ambiguous between: %s" % ', '.join(cmds))
-        self.cmds = cmds
 
 
 # ----------------------------------------------------------------------------------------------------------------------

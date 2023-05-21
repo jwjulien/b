@@ -1,8 +1,11 @@
 [tool.poetry]
 name = "b"
 version = "2.0.0"
-description = "A distributed bug tracker extension for Mercurial now with the ability to standalone"
-authors = ["Jared Julien <jaredjulien@exsystems.net>"]
+description = "A simple, distributed bug tracker."
+authors = [
+    "Michael Diamond <michael@digitalgemstones.com>",
+    "Jared Julien <jaredjulien@exsystems.net>"
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"

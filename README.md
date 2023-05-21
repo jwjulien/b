@@ -1,6 +1,10 @@
-b, A distributed bug tracker extension (originally for Mercurial)
+b, A distributed bug tracker
 ========================================================================================================================
-This version of `b` was forked from [foss.heptapod.net](https://foss.heptapod.net/mercurial/b) and some light modifications were made to:
+This version of `b` was forked from [foss.heptapod.net](https://foss.heptapod.net/mercurial/b).  Originally with only minor modifications, but now it's likely safer to say that this tool simply took inspiration from B.
+
+So, with that stated, full credit for the inspiration for this tool goes to Michael Diamond.  Thank you for taking the time and investing the effort to create `b`, without which this tool I love wouldn't likely exist.
+
+The original purpose of B was to serve as a low-feature stand-in for a real, convoluted bug tracking system.  I loved that concept, but have taken the tool much further - much beyond the original, small scope to the point of adding special features to give this tool the abilities of a fully fledged bug tracking system, but in a distributed package.
 
 - Support Python 3.x (mostly just adjustments to convert between byte strings and unicode strings).
 - Support invocation from the command line, outside of Mercurial, to allow use with other version control systems.
@@ -11,57 +15,31 @@ This version of `b` was forked from [foss.heptapod.net](https://foss.heptapod.ne
 
 Introduction:
 ------------------------------------------------------------------------------------------------------------------------
-Based off and built using Steve Losh's beautifully simple task manager [`t`](http://stevelosh.com/projects/t/) the fundamental principle is  'Get things done, not organized', and tries to follow `t`'s message, "the only way to make your bug list prettier is to fix some damn bugs."
+The original description of `b`, from Michael Diamond:
 
-That said, `b` has many powerful additions to `t`, without any of the bloat and burden of setting up, maintaining, or using a traditional bug tracker.
+> Based off and built using Steve Losh's beautifully simple task manager [`t`](http://stevelosh.com/projects/t/) the fundamental principle is  'Get things done, not organized', and tries to follow `t`'s message, "the only way to make your bug list prettier is to fix some damn bugs."
+>
+> That said, `b` has many powerful additions to `t`, without any of the bloat and burden of setting up, maintaining, or using a traditional bug tracker.
+>
+> You can use `b` exactly like `t`, add, rename, resolve, and list work almost exactly like `t` out of the box, with the added benefit that wherever you are in a repository, you maintain a single bugs database in the root of the repository.
+>
+> But you can do more with `b`.  You can reopen issues, the edit, details, and comment commands allow you to track additional information about the bugs, like stack traces and expected results, and whatever other information you'd like.  The details file is a plain text file, so you can include whatever content you'd like.
+>
+> You can also assign bugs to specific individuals and list lets you filter by owner to see what tasks are in your care.
+>
+> `b` is powerful enough to support several different workflow complexities, from an individual just tracking tasks in a repository, all the way up to a small, distributed team of managers and developers who need to be able to report, manage, and assign bugs, tasks, and issues, share details, and express their opinions.
+>
+> However, `b` is not intended to be be a replacement for large scale bug trackers like Jira, Bugzilla, and the upcoming Bugs Everywhere.  Most notably, (at present) `b` is just a command line tool.  There is no centralized bug list or web access, nor any GUI interface, and many of the features in such larger projects are lacking, notably any kind of warning or notification when a bug is reassigned, and the ability to categorize bugs and to provide resolution reasons, like fixed or duplicate - of course these could all be done manually, but there is no such built in functionality.
+>
+> If you need the power of a centralized issue tracker like Heptapod or GitHub provides, you're going to find `b` limited.  However if you find the extra "features" in these tools to be unhelpful bloat, and you don't want to waste time organizing, categorizing, and sorting and instead want a quick, easy way to track tasks with minimal setup and configuration, then `b` is the tool for you!
 
-You can use `b` exactly like `t`, add, rename, resolve, and list work almost exactly like `t` out of the box, with the added benefit that wherever you are in a repository, you maintain a single bugs database in the root of the repository.
-
-But you can do more with `b`.  You can reopen issues, the edit, details, and comment commands allow you to track additional information about the bugs, like stack traces and expected results, and whatever other information you'd like.  The details file is a plain text file, so you can include whatever content you'd like.
-
-You can also assign bugs to specific individuals and list lets you filter by owner to see what tasks are in your care.
-
-`b` is powerful enough to support several different workflow complexities, from an individual just tracking tasks in a repository, all the way up to a small, distributed team of managers and developers who need to be able to report, manage, and assign bugs, tasks, and issues, share details, and express their opinions.
-
-However, `b` is not intended to be be a replacement for large scale bug trackers like Jira, Bugzilla, and the upcoming Bugs Everywhere.  Most notably, (at present) `b` is just a command line tool.  There is no centralized bug list or web access, nor any GUI interface, and many of the features in such larger projects are lacking, notably any kind of warning or notification when a bug is reassigned, and the ability to categorize bugs and to provide resolution reasons, like fixed or duplicate - of course these could all be done manually, but there is no such built in functionality.
-
-If you need the power of a centralized issue tracker like Heptapod or GitHub provides, you're going to find `b` limited.  However if you find the extra "features" in these tools to be unhelpful bloat, and you don't want to waste time organizing, categorizing, and sorting and instead want a quick, easy way to track tasks with minimal setup and configuration, then `b` is the tool for you!
-
+I owe this a proper update at some point, but for now, suffice it to say that B is great, and Mercurial is amazing, however, the two have parted ways.  B will now work for any man and is simply a command line based tool, not a particular integration.
 
 
 ### Some Suggested Use Cases: ##########################################################################################
 Small scripts and tasks deserve version control, even if they're never going to be distributed elsewhere.  This is easy with Mercurial.  With `b` installed you get a fully functional bug tracker along with your VCS, no additional setup required! As soon as you install `b`, every repository on your machine now has issue tracking functionality ready to use.
 
 Working on a project with a few other team members is ideal for `b`, it's powerful enough to let everyone track what they need to do, and allow everyone to contribute what they can to any of the bugs on file.  They can search titles for matching bugs, and even grep through the details directory to find details matching what they're looking for.
-
-
-
-
-Installing `b`:
-------------------------------------------------------------------------------------------------------------------------
-Like any Mercurial Extension, to install `b` edit a Mercurial config file and add the following:
-
-    [extensions]
-    b=/path/to/b.py
-
-See the [Mercurial wiki](https://www.mercurial-scm.org/wiki/UsingExtensions) for more details on installing extensions.
-
-`b` is a zero-configuration tool - as soon as it is installed, every single repository is ready to start tracking issues, without any additional setup.
-
-
-
-
-Config Options:
-------------------------------------------------------------------------------------------------------------------------
-`b` has two configuration settings, both of which are optional, and should be put in the `[bugs]` section of any Mercurial config file.
-
-* `user`
-
-    By default `b` uses your Mercurial commit name.  If you want to use a different identifier you can set this value to something different.  Note that `b` works fine without any username - issues will be owned by a special `Nobody` user.
-
-* `dir`
-
-    Allows you to specify (relative to the repo root) where the bugs database should go.  The default is '.bugs'.
 
 
 
@@ -144,23 +122,3 @@ These flags can be used together for fairly granular browsing of your bugs datab
 The read-only commands (`list`, `details`, `users`, and `id`) have an additional `--rev` option that can be used to run that command against a committed revision of the bug database.  To see the list of issues open at the time of this release for instance, you could run:
 
     $ hg b list --rev 6.0-rc-2
-
-
-
-
-FAQ:
-------------------------------------------------------------------------------------------------------------------------
-### How well does `b` scale?
-Basic benchmarks indicate that `b` performs well even with very large lists.  Test bug lists of more than 50,000 records have been constructed and `b` responds very quickly, taking just a second or two to add a record, and even less time to list bugs, especially filtering by owner or by grep.  Of course, you would have to work very hard to ever reach a bug list even close to that number, and long before you get there you'll likely discover you need to switch to something more powerful, so for all practical purposes `b` should handle everything you can throw at it.
-
-
-### I would really like to be able to categorize my bugs, or detail how the bug was resolved, why isn't that possible?
-`b` is philosophically opposed to tracking this sort of data, and is not trying to replace large scale, metadata driven bug trackers.  If you find yourself wishing it had these sorts of features, you may very well be looking at the wrong product.  However, you could certainly add such data to the details file, or add flags like P1 or BLOCKING to issue titles if you felt the need to do so.  Users have reported finding this workflow - combined with list's `-g` flag - satisfactory.
-
-
-### Can I use standard Mercurial commands inside the `.bugs` directory?
-Absolutely.  Everything in the `.bugs` directory is simple text files, enabling easy merging, diffing, grepping, annotating, browsing, and data mining.  If you feel so inclined, you can even edit any of the files in the `.bugs` directory manually.
-
-
-### Why doesn't `b` commit my changes?
-`b` does not commit after bugs are filed or changed intentionally.  The hope is that `b` acts completely transparently to the underlying repository, and that commits are never solely about bugs (unless the user chooses so).  This allows the repository structure and the commit messages to remain concerned with the source code, and not have it fill up with uninformative messages about every little thing you do with `b`.  It does however automatically add everything located in the bugs directory so you shouldn't have to worry about ever leaving anything untracked.  Be careful that you don't accidentally check in `.orig` or `.rej` files that Mercurial sometimes creates in the bugs directory, they would also be added automatically.

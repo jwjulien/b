@@ -1,7 +1,7 @@
 # ======================================================================================================================
 #        File:  command.py
 #     Project:  B Bug Tracker
-# Description:  Distributed Bug Tracker Extension for Mercurial
+# Description:  Simple bug tracker
 #      Author:  Jared Julien <jaredjulien@exsystems.net>
 #   Copyright:  (c) 2010-2011 Michael Diamond <michael@digitalgemstones.com>
 #               (c) 2022-2023 Jared Julien <jaredjulien@exsystems.net>

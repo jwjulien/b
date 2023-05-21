@@ -1,7 +1,7 @@
 # ======================================================================================================================
 #        File:  helpers.py
 #     Project:  B Bug Tracker
-# Description:  Distributed Bug Tracker Extension for Mercurial
+# Description:  Simple bug tracker
 #      Author:  Jared Julien <jaredjulien@exsystems.net>
 #   Copyright:  (c) 2010-2011 Michael Diamond <michael@digitalgemstones.com>
 #               (c) 2022-2023 Jared Julien <jaredjulien@exsystems.net>
@@ -45,13 +45,6 @@ def hash(*args):
     Currently SHA1 hashing is used.  It should be plenty for our purposes.
     """
     return hashlib.sha1(''.join(args).encode('utf-8')).hexdigest()
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-if 'HG_B_SIMPLE_HASHING' in os.environ:
-    def hash(*args):
-        """Hashes only the first argument."""
-        return hashlib.sha1(args[0].encode('utf-8')).hexdigest()
 
 
 # ----------------------------------------------------------------------------------------------------------------------
