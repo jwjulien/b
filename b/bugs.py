@@ -432,12 +432,15 @@ class Bugs(object):
 
         # If a comments section exists, then insert this comment at the end of that section.
         if '\n[comments]\n' in contents:
-            find = r'(\n\[comments\]\n.+?)\n*(\n\[.+\]\n|\Z)'
+            find = r'(\n\[comments\]\n.*?)\n*(\n\[.+\]\n|\Z)'
             replace = fr'\1\n\n{comment}\2'
-            contents = re.sub(find, replace, contents, flags=re.DOTALL | re.MULTILINE)
+            changed = re.sub(find, replace, contents, flags=re.DOTALL | re.MULTILINE)
+
+            # Make sure that the comment was actually injected.
+            assert changed != contents
 
             with open(path, "w") as handle:
-                handle.write(contents)
+                handle.write(changed)
 
         # If no comments section exists then append it instead.
         else:
