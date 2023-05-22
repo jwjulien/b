@@ -11,19 +11,19 @@
 # Additional details, thoughts, concerns, etc.
 
 
+[reproduce]
+# Steps needed to reproduce the bug.  For example:
+# 1. Go to <a>.
+# 2. Enter number into <b>.
+# 3. Press <c>.
+
+
 [expected]
 # What you expected to happen.
 
 
 [actual]
 # What actually happened instead.
-
-
-[reproduce]
-# Steps needed to reproduce the bug.  For example:
-# 1. Go to <a>.
-# 2. Enter number into <b>.
-# 3. Press <c>.
 
 
 [paths]

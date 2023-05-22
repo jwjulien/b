@@ -39,8 +39,7 @@ def _add_arg_template(parser):
     parser.add_argument(
         '-t',
         '--template',
-        default='bug',
-        help='specify the bug template to use if creating new detail file - use `templates` command to list templates'
+        help='specify template for new detail file (default: bug) - use `templates` command to list templates'
     )
 
 
@@ -264,7 +263,7 @@ def run():
         try:
             # Handle the specified command.
             if args.command == 'add':
-                bugs.add(args.text)
+                bugs.add(args.text, args.template)
 
             elif args.command == 'assign':
                 bugs.assign(args.prefix, args.username, args.force)

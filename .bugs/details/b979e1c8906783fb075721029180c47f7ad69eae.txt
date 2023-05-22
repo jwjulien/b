@@ -1,0 +1,42 @@
+# Lines starting with '#' and empty sections are ignored.
+# It is recommended that comments be removed from sections as they are populated.
+# The use of [Markdown](https://www.markdownguide.org/basic-syntax/) formatting is highly encouraged.
+
+[reporter]
+jared
+
+
+[details]
+It's odd to have to specify a template on first comment or edit, rather than on add.
+
+I also don't want to track the template that was specified in the bugs dictionary as it's not bug related.
+
+Better yet, how about generate a details file on add IF the user specifies a template to be used.
+
+Should edit be triggered too?
+
+
+[reproduce]
+1. Run command `b add -t feature "a new feature"` to generate a new bug with the "feature" template.
+    - Example output: "Added bug 6:732fe7a756"
+2. Run command `b edit 6` to open the details file in the editor.
+3. Observe that the new details file is from the "bug" template instead.
+
+
+[expected]
+Proper template should be used when user specifies along with the `add` command.
+
+
+[actual]
+Default template is used.
+
+
+[paths]
+b.dict
+
+
+[comments]
+-----[ jared on Sunday, May 21, 2023 at 04:56 PM ]-----
+I think the best approach for this is to just generate an empty details file any time the
+template is specified, even if the edit command wasn't invoked.
+

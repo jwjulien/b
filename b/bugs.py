@@ -176,9 +176,16 @@ class Bugs(object):
 # ----------------------------------------------------------------------------------------------------------------------
     def _make_details_file(self, full_id, template):
         """Create a details file for the given id."""
+        # Default to the "bug" template when the user didn't specify.
+        if template is None:
+            template = 'bug'
+
+        # Generate the directory path for detail files if it doesn't exist.
         (dirpath, path) = self._get_details_path(full_id)
         if not os.path.exists(dirpath):
             helpers.mkdir_p(dirpath)
+
+        # Add the new detail file from template.
         templates = self.list_templates()
         if not os.path.exists(path):
             try:
@@ -250,7 +257,7 @@ class Bugs(object):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def add(self, text):
+    def add(self, text, template):
         """Adds a bug with no owner to the task list."""
         # Generate a new ID for this bug and ensure no possible collisions can occur, even if unlikely.
         while True:
@@ -270,6 +277,11 @@ class Bugs(object):
         prefix = helpers.prefixes(self.bugs.keys())[task_id]
         short_task_id = "[bold cyan]%s[/]:[yellow]%s[/]" % (prefix, task_id[len(prefix):10])
         self.write()
+
+        # If the user specified a template then add a detail file now.
+        if template is not None:
+            self._make_details_file(task_id, template)
+
         print(f"Added bug {short_task_id}")
 
 

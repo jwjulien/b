@@ -1,6 +1,8 @@
 add comments to comment section rather than EOF              | id:1b16391a6cb4c5cc5df66b530ed95165ff8b502a, open:False, owner:jared <jaredjulien@exsystems.net>, time:1682007223.5079982
 remove Mercurial support                                     | id:26f7aababf9df358b509a476a8e6b83bb3893769, open:False, owner:jared <jaredjulien@exsystems.net>, time:1684622156.327206
 add color support                                            | id:73de3ab994809656ecf593cf92053c4788e73eb2, open:False, owner:jared <jaredjulien@exsystems.net>, time:1684621976.1838238
-support tagging bugs                                         | id:a42118dcdb289cfea3c9895f7c4eb693acc6a646, open:True, owner:jared <jaredjulien@exsystems.net>, time:1684608030.3998022
+support tagging bugs                                         | id:a42118dcdb289cfea3c9895f7c4eb693acc6a646, open:False, owner:jared <jaredjulien@exsystems.net>, time:1684608030.3998022
+generate a details file when bug is added                    | id:b979e1c8906783fb075721029180c47f7ad69eae, open:False, owner:jared, time:1684702150.8143413
+new comments at EOF fail                                     | id:bf757d75a4daabfca97137c3213b6db8702fa75c, open:True, owner:jared, time:1684702617.6834009
 revamp settings with get/set                                 | id:e145ec02d3ed4799f4eed7fe432855c775e3d068, open:False, owner:jared <jaredjulien@exsystems.net>, time:1684606236.3726103
 better templates                                             | id:ebf6bab6038ed3a95311bf925a300a6edd52105d, open:False, owner:jared <jaredjulien@exsystems.net>, time:1682007534.3868706
