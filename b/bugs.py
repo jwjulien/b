@@ -22,8 +22,8 @@ from typing import Dict
 from rich import print
 from rich.console import Console
 
-from b import exceptions
-from b import helpers
+from b import exceptions, helpers, migrations
+
 
 
 
@@ -31,7 +31,7 @@ from b import helpers
 # ======================================================================================================================
 # Bugs Class
 # ----------------------------------------------------------------------------------------------------------------------
-class Bugs(object):
+class Bugs:
     """A set of bugs, issues, and tasks, both finished and unfinished, for a given repository.
 
     The list's file is read from disk when initialized. The items can be written back out to disk with the write()
@@ -52,17 +52,12 @@ class Bugs(object):
         self.bugs = {}
 
         # If the specified bugs directory is absolute, then we need not search for it.
-        base = None
-        if os.path.isabs(self.bugsdir):
-            base = self.bugsdir
-
-        # If the bugs directory is relative, then lets search for it starting from the current working directory.
-        else:
+        if not os.path.isabs(self.bugsdir):
             working = os.getcwd()
             while working:
                 test = os.path.join(working, self.bugsdir)
                 if os.path.exists(test):
-                    base = test
+                    self.bugsdir = test
                     break
 
                 # Step up one directory.
@@ -74,9 +69,9 @@ class Bugs(object):
 
                 working = new
 
-
-        if base is not None:
-            self.bugs_dict_path = os.path.join(base, 'bugs')
+        # If the bugs directory exists, then load the existing bugs.
+        if os.path.exists(self.bugsdir):
+            self.bugs_dict_path = os.path.join(self.bugsdir, 'bugs')
             with open(self.bugs_dict_path, 'r') as tfile:
                 tlns = tfile.readlines()
                 tls = [tl.strip() for tl in tlns if tl.strip()]
@@ -547,6 +542,12 @@ class Bugs(object):
             print(line)
 
         print(helpers.describe_print(len(small), is_open, owner, grep))
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def migrate(self) -> None:
+        """Migrate the current bugs directory to the latest version."""
+        migrations.details_to_markdown(self.bugsdir)
 
 
 

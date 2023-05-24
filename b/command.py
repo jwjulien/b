@@ -16,12 +16,13 @@ Because this is standalone and does not involve Mercurial, the bits regarding sp
 # ----------------------------------------------------------------------------------------------------------------------
 import os
 from argparse import ArgumentParser
-from configparser import ConfigParser
+import logging
 from importlib import metadata
 import getpass
 
 from rich import print
 from rich_argparse import RichHelpFormatter
+from rich.logging import RichHandler
 
 from b.bugs import Bugs
 from b.settings import Settings
@@ -84,6 +85,15 @@ def run():
     description = metadata.metadata('b')['Summary']
     version = metadata.version('b')
     parser = ArgumentParser(description=description, formatter_class=RichHelpFormatter)
+
+    parser.add_argument(
+        '-v',
+        '--verbose',
+        action='count',
+        default=0,
+        help='increase verbosity of output'
+    )
+
     commands = parser.add_subparsers(title='command', dest='command')
 
     parser_init = commands.add_parser('init',
@@ -248,6 +258,10 @@ def run():
         help='restore variable to default value'
     )
 
+    commands.add_parser('migrate',
+                        help='migrate bugs directory to the latest version',
+                        formatter_class=RichHelpFormatter)
+
     commands.add_parser('version',
                         help='output the version number of b and exit',
                         formatter_class=RichHelpFormatter)
@@ -262,6 +276,11 @@ def run():
     if 'text' in args:
         args.text = ' '.join(args.text).strip()
 
+    # Setup logging output.
+    levels = [logging.WARNING, logging.INFO, logging.DEBUG]
+    level = levels[min(2, args.verbose)]
+    logging.basicConfig(level=level, format='%(message)s', datefmt="[%X]", handlers=[RichHandler()])
+
     defaults = {
         'general.editor': 'notepad' if os.name == 'nt' else 'nano',
         'general.dir': '.bugs',
@@ -270,6 +289,13 @@ def run():
     with Settings(defaults) as settings:
         # Load the bug dictionary from the bugs file.
         bugs = Bugs(settings.get('dir'), settings.get('user'), settings.get('editor'))
+
+        logging.debug('Current settings:')
+        logging.debug('- dir = "%s"', settings.get('dir'))
+        logging.debug('- user = "%s"', settings.get('user'))
+        logging.debug('- editor = "%s"', settings.get('editor'))
+
+        logging.debug('Issued command: "%s"', args.command)
 
         try:
             # Handle the specified command.
@@ -341,6 +367,8 @@ def run():
                     for key, value in settings.list():
                         print(f'{key}={value}')
 
+            elif args.command == 'migrate':
+                bugs.migrate()
 
             elif args.command == 'version':
                 print(f'b version {version}')
