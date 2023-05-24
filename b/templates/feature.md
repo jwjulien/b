@@ -1,26 +1,22 @@
 # Lines starting with '#' and empty sections are ignored.
 # It is recommended that comments be removed from sections as they are populated.
 # The use of [Markdown](https://www.markdownguide.org/basic-syntax/) formatting is highly encouraged.
-[what]
-Add support for colored output back to the terminal.
+## What
+# Describe the feature that you are requesting.
 
 
-[why]
-Would make it easier to denot prefixes and to show open vs. closed bugs.
-
-
-
-[how]
-Suggested color scheme:
-
-- Prefixes: blue
-- IDs: yellow
-- Open bugs: red
-- Closed bugs: green
+## Why
+# Explain why this feature would be a welcome additon.
+# What problem would it resolve?
 
 
 
-[comments]
+## How
+# Any details or nuances that you know about?
+
+
+
+## Comments
 # Comments and updates - leave your name
 # Suggested format:
 # -----[ Commentor Name <commentor.email@example.com> on Saturday, May 20, 2023 at 8:32 pm ]-----

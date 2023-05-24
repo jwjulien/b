@@ -215,7 +215,7 @@ class Bugs(object):
     def _get_details_path(self, full_id):
         """Returns the directory and file path to the details specified by id."""
         dirpath = os.path.join(self.bugsdir, 'details')
-        path = os.path.join(dirpath, full_id + ".txt")
+        path = os.path.join(dirpath, full_id + ".md")
         return dirpath, path
 
 
