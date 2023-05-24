@@ -86,6 +86,17 @@ def run():
     parser = ArgumentParser(description=description, formatter_class=RichHelpFormatter)
     commands = parser.add_subparsers(title='command', dest='command')
 
+    parser_init = commands.add_parser('init',
+                                      help='initialize a bugs directory for new bugs',
+                                      formatter_class=RichHelpFormatter)
+    parser_init.add_argument(
+        '-f',
+        '--force',
+        action='store_true',
+        default=False,
+        help='force the creation of a bugs directory in this location, even if one exists above this level'
+    )
+
     parser_add = commands.add_parser('add',
                                      help='adds a new open bug to the database',
                                      formatter_class=RichHelpFormatter)
@@ -265,9 +276,11 @@ def run():
             if args.command == 'add':
                 bugs.add(args.text, args.template)
 
+            elif args.command == 'init':
+                bugs.initialize(args.force)
+
             elif args.command == 'assign':
                 bugs.assign(args.prefix, args.username, args.force)
-                bugs.write()
 
             elif args.command == 'comment':
                 bugs.comment(args.prefix, args.text, args.template)
@@ -286,15 +299,12 @@ def run():
 
             elif args.command == 'rename':
                 bugs.rename(args.prefix, args.text)
-                bugs.write()
 
             elif args.command == 'resolve':
                 bugs.resolve(args.prefix)
-                bugs.write()
 
             elif args.command == 'reopen':
                 bugs.reopen(args.prefix)
-                bugs.write()
 
             elif args.command == 'users':
                 bugs.users()

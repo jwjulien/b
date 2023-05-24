@@ -1,0 +1,28 @@
+[what]
+Move the title of the bug from the dict into the detail file as the first line of text.
+
+
+[why]
+It's very annoying to need to keep switching between the details file and the dict
+to check bug titles.
+
+
+
+[how]
+Switch the BugDict from using an odd dict to support bug attributes into a new
+Bug class with properties.  The BugDict can then be turned into a BugList, perhaps,
+and sort by ID.
+
+If going this route, I would also recommend moving other metadata from the dict into
+the details files, such as open/closed status, creation date, creation user, assigned
+user, etc.  They are all just plain text fields anyways and I don't like that you have
+to cross reference the bugs dict to find the title for a bug.
+
+Further, I think this new Bug class needs to be able to parse the text into memory and
+support writing the bug file back out.  That way, things like comments and properties
+can be adjusted easily.  Be mindful of user-added whitespace though.
+
+
+
+[comments]
+

@@ -49,15 +49,6 @@ def test_hash():
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def test_mkdirp():
-    """Verify that the mkdirp works."""
-    path = os.path.join('dir', 'to', 'test', '_mkdir_p')
-    helpers.mkdir_p(path)
-    assert os.path.exists(path)
-    shutil.rmtree(path)
-
-
-# ----------------------------------------------------------------------------------------------------------------------
 @pytest.mark.parametrize('value, expected', [
     ('True', True),
     ('Flase', False)

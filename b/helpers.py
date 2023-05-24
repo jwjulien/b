@@ -48,20 +48,6 @@ def hash(*args):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def mkdir_p(path):
-    """Race condition handling recursive mkdir -p call:
-    http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
-    """
-    try:
-        os.makedirs(path)
-    except OSError as exc:
-        if exc.errno == errno.EEXIST:
-            pass
-        else:
-            raise
-
-
-# ----------------------------------------------------------------------------------------------------------------------
 def truth(s):
     """Indicates the truth of a string."""
     return s == 'True' or s == 'true'

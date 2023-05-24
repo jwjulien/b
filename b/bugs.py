@@ -43,22 +43,80 @@ class Bugs(object):
 
     def __init__(self, bugsdir: str, user: str, editor: str):
         """Initialize by reading the task files, if they exist."""
-        self.bugsdir = bugsdir
+        self.bugsdir = os.path.expanduser(bugsdir)
         self.user = user
         self.editor = editor
-        self.file = 'bugs'
-        self.detailsdir = 'details'
-        self.last_added_id = None
 
+        self.last_added_id = None
+        self.bugs_dict_path = None
         self.bugs = {}
-        path = os.path.join(os.path.expanduser(str(self.bugsdir)), self.file)
-        if os.path.exists(path):
-            with open(path, 'r') as tfile:
+
+        # If the specified bugs directory is absolute, then we need not search for it.
+        base = None
+        if os.path.isabs(self.bugsdir):
+            base = self.bugsdir
+
+        # If the bugs directory is relative, then lets search for it starting from the current working directory.
+        else:
+            working = os.getcwd()
+            while working:
+                test = os.path.join(working, self.bugsdir)
+                if os.path.exists(test):
+                    base = test
+                    break
+
+                # Step up one directory.
+                new = os.path.dirname(working)
+
+                # Bail out if we're at the top of the tree.
+                if new == working:
+                    break
+
+                working = new
+
+
+        if base is not None:
+            self.bugs_dict_path = os.path.join(base, 'bugs')
+            with open(self.bugs_dict_path, 'r') as tfile:
                 tlns = tfile.readlines()
                 tls = [tl.strip() for tl in tlns if tl.strip()]
                 tasks = map(helpers.task_from_taskline, tls)
                 for task in tasks:
                     self.bugs[task['id']] = task
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def _write(self):
+        """Flush the finished and unfinished tasks to the files on disk."""
+        if self.bugs_dict_path is None:
+            raise exceptions.NotInitialized('No bugs directory found for the current directory')
+        tasks = sorted(self.bugs.values(), key=itemgetter('id'))
+        with open(self.bugs_dict_path, 'w') as tfile:
+            for taskline in helpers.tasklines_from_tasks(tasks):
+                tfile.write(taskline)
+
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def initialize(self, force: bool):
+        """Initialize a new bugs directory at the current working directory."""
+        # Warn the user about creating a bugs directory if one was already found in a folder above.
+        # Using the "-f" argument to "force" the creation will put a new bugs directory here too.
+        if self.bugs_dict_path is not None and not force:
+            message = f'Bugs directory already exists at {self.bugs_dict_path} - use -f to force creation here'
+            raise exceptions.AlreadyInitialized(message)
+
+        # Attempt to make the directory as specified, if it exists the exception will be morphed into AlreadyExists.
+        try:
+            os.makedirs(self.bugsdir)
+        except OSError as error:
+            raise exceptions.AlreadyInitialized('Bugs directory already exists in this exact location') from error
+
+        # Set the path for the bugs directory and dictionary file and write it.  File will be empty for now.
+        self.bugs_dict_path = os.path.join(self.bugsdir, 'bugs')
+        self._write()
+
+        print(f'Initialized a bugs directory at "{os.path.abspath(self.bugsdir)}"')
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -131,18 +189,6 @@ class Bugs(object):
         self._launch_editor(path)
 
 
-
-# ----------------------------------------------------------------------------------------------------------------------
-    def write(self):
-        """Flush the finished and unfinished tasks to the files on disk."""
-        helpers.mkdir_p(self.bugsdir)
-        path = os.path.join(os.path.expanduser(self.bugsdir), self.file)
-        tasks = sorted(self.bugs.values(), key=itemgetter('id'))
-        with open(path, 'w') as tfile:
-            for taskline in helpers.tasklines_from_tasks(tasks):
-                tfile.write(taskline)
-
-
 # ----------------------------------------------------------------------------------------------------------------------
     def __getitem__(self, prefix):
         """Return the task with the given prefix.
@@ -168,7 +214,7 @@ class Bugs(object):
 # ----------------------------------------------------------------------------------------------------------------------
     def _get_details_path(self, full_id):
         """Returns the directory and file path to the details specified by id."""
-        dirpath = os.path.join(self.bugsdir, self.detailsdir)
+        dirpath = os.path.join(self.bugsdir, 'details')
         path = os.path.join(dirpath, full_id + ".txt")
         return dirpath, path
 
@@ -183,7 +229,7 @@ class Bugs(object):
         # Generate the directory path for detail files if it doesn't exist.
         (dirpath, path) = self._get_details_path(full_id)
         if not os.path.exists(dirpath):
-            helpers.mkdir_p(dirpath)
+            os.makedirs(dirpath, exist_ok=True)
 
         # Add the new detail file from template.
         templates = self.list_templates()
@@ -276,7 +322,7 @@ class Bugs(object):
         self.last_added_id = task_id
         prefix = helpers.prefixes(self.bugs.keys())[task_id]
         short_task_id = "[bold cyan]%s[/]:[yellow]%s[/]" % (prefix, task_id[len(prefix):10])
-        self.write()
+        self._write()
 
         # If the user specified a template then add a detail file now.
         if template is not None:
@@ -301,6 +347,7 @@ class Bugs(object):
             text = re.sub(find, repl, task['text'])
 
         task['text'] = text
+        self._write()
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -330,6 +377,7 @@ class Bugs(object):
         if user == '':
             user = 'Nobody'
 
+        self._write()
         print(f"Assigned {prefix}: '{task['text']}' to {user}")
 
 
@@ -453,6 +501,7 @@ class Bugs(object):
         """Marks a bug as resolved"""
         task = self[prefix]
         task['open'] = 'False'
+        self._write()
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -460,6 +509,7 @@ class Bugs(object):
         """Reopens a bug that was previously resolved"""
         task = self[prefix]
         task['open'] = 'True'
+        self._write()
 
 
 # ----------------------------------------------------------------------------------------------------------------------

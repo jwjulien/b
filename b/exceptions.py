@@ -20,6 +20,16 @@ class Error(Exception):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+class NotInitialized(Error):
+    """Raised when the bugs directory couldn't be found for the current working directory."""
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+class AlreadyInitialized(Error):
+    """Raise when init is called but the bugs directory already exists."""
+
+
+# ----------------------------------------------------------------------------------------------------------------------
 class UnknownPrefix(Error):
     """Raised when trying to use a prefix that does not match any tasks."""
 
