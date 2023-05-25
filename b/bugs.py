@@ -16,8 +16,9 @@ import re
 import shutil
 import subprocess
 import time
-from operator import itemgetter
 from typing import Dict
+from dataclasses import dataclass, field
+from enum import Enum
 
 from rich import print
 from rich.console import Console
@@ -27,11 +28,52 @@ from b import exceptions, helpers, migrations
 
 
 
+# ======================================================================================================================
+# Bug Class
+# ----------------------------------------------------------------------------------------------------------------------
+@dataclass
+class Bug:
+    """Represents a single Bug with methods to import and export from and to detail files.
+
+    The filename of the details file represents the ID of the bug, which is also a SHA1 hash so as to be unique and
+    (ideally) prevent conflicts when merging two projects together.
+    """
+    title: str
+    id: str
+    is_open: bool = True
+    entered: int = field(default_factory=time.time)
+    owner: str = None
+
+    @staticmethod
+    def from_taskline(line: str) -> 'Bug':
+        meta = {}
+        if '|' in line:
+            title, other = line.rsplit('|', 1)
+            for piece in other.strip().split(','):
+                label, data = piece.split(':', 1)
+                meta[label.strip()] = data.strip()
+        else:
+            title = line.strip()
+
+        id = meta.get('id', helpers.make_id())
+        is_open = bool(meta.get('open', '').lower() != 'false')
+        entered = meta.get('time', time.time())
+        owner = meta.get('owner')
+
+        return Bug(title=title.strip(), id=id, is_open=is_open, entered=entered, owner=owner)
+
+
+    def to_taskline(self) -> str:
+        return f'{self.title.ljust(60)} | id:{self.id},open:{self.is_open},time:{self.entered},owner:{self.owner}'
+
+
+
+
 
 # ======================================================================================================================
-# Bugs Class
+# Tracker Class
 # ----------------------------------------------------------------------------------------------------------------------
-class Bugs:
+class Tracker:
     """A set of bugs, issues, and tasks, both finished and unfinished, for a given repository.
 
     The list's file is read from disk when initialized. The items can be written back out to disk with the write()
@@ -43,52 +85,48 @@ class Bugs:
 
     def __init__(self, bugsdir: str, user: str, editor: str):
         """Initialize by reading the task files, if they exist."""
-        self.bugsdir = os.path.expanduser(bugsdir)
         self.user = user
         self.editor = editor
 
         self.last_added_id = None
-        self.bugs_dict_path = None
-        self.bugs = {}
 
-        # If the specified bugs directory is absolute, then we need not search for it.
-        if not os.path.isabs(self.bugsdir):
+        def climb_tree(reference) -> str:
             working = os.getcwd()
-            while working:
-                test = os.path.join(working, self.bugsdir)
+            while True:
+                test = os.path.join(working, reference)
                 if os.path.exists(test):
-                    self.bugsdir = test
-                    break
+                    return test
 
                 # Step up one directory.
                 new = os.path.dirname(working)
-
-                # Bail out if we're at the top of the tree.
                 if new == working:
-                    break
-
+                    # Bail out if we're at the top of the tree.
+                    return reference
                 working = new
 
+        bugsdir = os.path.expanduser(bugsdir)
+        self.bugsdir = bugsdir if os.path.isabs(os.path.expanduser(bugsdir)) else climb_tree(bugsdir)
+
         # If the bugs directory exists, then load the existing bugs.
-        if os.path.exists(self.bugsdir):
-            self.bugs_dict_path = os.path.join(self.bugsdir, 'bugs')
-            with open(self.bugs_dict_path, 'r') as tfile:
-                tlns = tfile.readlines()
-                tls = [tl.strip() for tl in tlns if tl.strip()]
-                tasks = map(helpers.task_from_taskline, tls)
-                for task in tasks:
-                    self.bugs[task['id']] = task
+        self.bugs: Dict[str, Bug] = {}
+        self.bugs_filename = None
+        if self.bugsdir is not None and os.path.exists(self.bugsdir):
+            self.bugs_filename = os.path.join(self.bugsdir, 'bugs')
+            if os.path.exists(self.bugs_filename):
+                with open(self.bugs_filename, 'r') as handle:
+                    lines = handle.readlines()
+                bugs = [Bug.from_taskline(line.strip()) for line in lines if line.strip()]
+                self.bugs = dict((bug.id, bug) for bug in bugs)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
     def _write(self):
         """Flush the finished and unfinished tasks to the files on disk."""
-        if self.bugs_dict_path is None:
+        if self.bugs_filename is None:
             raise exceptions.NotInitialized('No bugs directory found for the current directory')
-        tasks = sorted(self.bugs.values(), key=itemgetter('id'))
-        with open(self.bugs_dict_path, 'w') as tfile:
-            for taskline in helpers.tasklines_from_tasks(tasks):
-                tfile.write(taskline)
+        with open(self.bugs_filename, 'w') as tfile:
+            for bug in sorted(self.bugs.values(), key=lambda bug: bug.id):
+                tfile.write(bug.to_taskline())
 
 
 
@@ -97,8 +135,8 @@ class Bugs:
         """Initialize a new bugs directory at the current working directory."""
         # Warn the user about creating a bugs directory if one was already found in a folder above.
         # Using the "-f" argument to "force" the creation will put a new bugs directory here too.
-        if self.bugs_dict_path is not None and not force:
-            message = f'Bugs directory already exists at {self.bugs_dict_path} - use -f to force creation here'
+        if self.bugs_filename is not None and not force:
+            message = f'Bugs directory already exists at {self.bugs_filename} - use -f to force creation here'
             raise exceptions.AlreadyInitialized(message)
 
         # Attempt to make the directory as specified, if it exists the exception will be morphed into AlreadyExists.
@@ -108,7 +146,7 @@ class Bugs:
             raise exceptions.AlreadyInitialized('Bugs directory already exists in this exact location') from error
 
         # Set the path for the bugs directory and dictionary file and write it.  File will be empty for now.
-        self.bugs_dict_path = os.path.join(self.bugsdir, 'bugs')
+        self.bugs_filename = os.path.join(self.bugsdir, 'bugs')
         self._write()
 
         print(f'Initialized a bugs directory at "{os.path.abspath(self.bugsdir)}"')
@@ -186,10 +224,10 @@ class Bugs:
 
 # ----------------------------------------------------------------------------------------------------------------------
     def __getitem__(self, prefix):
-        """Return the task with the given prefix.
+        """Return the bug with the given prefix.
 
-        If more than one task matches the prefix an AmbiguousPrefix exception will be raised, unless the prefix is the
-        entire ID of one task.
+        If more than one bug matches the prefix an AmbiguousPrefix exception will be raised, unless the prefix is the
+        entire ID of one bug.
 
         If no tasks match the prefix an UnknownPrefix exception will be raised.
         """
@@ -240,8 +278,8 @@ class Bugs:
 # ----------------------------------------------------------------------------------------------------------------------
     def _users_list(self):
         """Returns a mapping of usernames to the number of open bugs assigned to that user."""
-        open_tasks = [item['owner'] for item in self.bugs.values() if helpers.truth(item['open'])]
-        closed = [item['owner'] for item in self.bugs.values() if not helpers.truth(item['open'])]
+        open_tasks = [bug.owner for bug in self.bugs.values() if bug.is_open]
+        closed = [bug.owner for bug in self.bugs.values() if not bug.is_open]
         users = {}
         for user in open_tasks:
             if user in users:
@@ -253,7 +291,7 @@ class Bugs:
                 users[user] = 0
 
         if '' in users:
-            users['Nobody'] = users['']
+            users['*unassigned*'] = users['']
             del users['']
         return users
 
@@ -293,41 +331,30 @@ class Bugs:
 
 # ----------------------------------------------------------------------------------------------------------------------
     def id(self, prefix):
-        """ Given a prefix, returns the full id of that bug."""
-        print(self[prefix]['id'])
+        """Given a prefix, returns the full id of that bug."""
+        print(self[prefix].id)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def add(self, text, template):
-        """Adds a bug with no owner to the task list."""
-        # Generate a new ID for this bug and ensure no possible collisions can occur, even if unlikely.
-        while True:
-            task_id = helpers.hash(text, self.user, str(time.time()))
-            if task_id not in self.bugs:
-                break
+    def add(self, title, template):
+        """Adds a new bug to the list."""
+        bug = Bug(title=title, id=helpers.make_id(self.bugs.keys()))
+        self.bugs[bug.id] = bug
 
-        self.bugs[task_id] = {
-            'id': task_id,
-            'open': 'True',
-            'owner': self.user,
-            'text': text,
-            'time': time.time()
-        }
-
-        self.last_added_id = task_id
-        prefix = helpers.prefixes(self.bugs.keys())[task_id]
-        short_task_id = "[bold cyan]%s[/]:[yellow]%s[/]" % (prefix, task_id[len(prefix):10])
+        self.last_added_id = bug.id
+        prefix = helpers.prefixes(self.bugs.keys())[bug.id]
+        short_task_id = "[bold cyan]%s[/]:[yellow]%s[/]" % (prefix, bug.id[len(prefix):10])
         self._write()
 
         # If the user specified a template then add a detail file now.
         if template is not None:
-            self._make_details_file(task_id, template)
+            self._make_details_file(bug.id, template)
 
         print(f"Added bug {short_task_id}")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def rename(self, prefix, text):
+    def rename(self, prefix, title):
         """Renames the bug.
 
         If more than one task matches the prefix an AmbiguousPrefix exception will be raised, unless the prefix is the
@@ -335,13 +362,13 @@ class Bugs:
 
         If no tasks match the prefix an UnknownPrefix exception will be raised.
         """
-        task = self[prefix]
-        if text.startswith('s/') or text.startswith('/'):
-            text = re.sub('^s?/', '', text).rstrip('/')
-            find, _, repl = text.partition('/')
-            text = re.sub(find, repl, task['text'])
+        bug = self[prefix]
+        if title.startswith('s/') or title.startswith('/'):
+            title = re.sub('^s?/', '', title).rstrip('/')
+            find, _, repl = title.partition('/')
+            title = re.sub(find, repl, bug.title)
 
-        task['text'] = text
+        bug.title = title
         self._write()
 
 
@@ -365,15 +392,15 @@ class Bugs:
 
         Using the -f flag will create a new user with that exact name, it will not try to guess, or warn the user.
         """
-        task = self[prefix]
+        bug = self[prefix]
         user = self._get_user(user, force)
-        task['owner'] = user
+        bug.owner = user
 
         if user == '':
             user = 'Nobody'
 
         self._write()
-        print(f"Assigned {prefix}: '{task['text']}' to {user}")
+        print(f"Assigned {prefix}: '{bug.title}' to {user}")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -383,23 +410,22 @@ class Bugs:
         Metadata (like owner, and creation time) which are not stored in the details file are displayed along with the
         details.
 
-        Sections (denoted by a [text] line) with no content are not displayed.
+        Sections with no content are not displayed.
         """
-        task = self[prefix]  # confirms prefix does exist
+        bug = self[prefix]  # confirms prefix does exist
 
-        resolved = not helpers.truth(task['open'])
-        print(f"Title: [{'green' if resolved else 'red'}]{task['text']}")
+        print(f"Title: [{'red' if bug.is_open else 'green'}]{bug.title}")
 
-        print(f"ID: [bold cyan]{prefix}[/]:[yellow]{task['id'][len(prefix):]}")
+        print(f"ID: [bold cyan]{prefix}[/]:[yellow]{bug.id[len(prefix):]}")
 
-        print(f"Status: [{'green' if resolved else 'red'}]{'Resolved' if resolved else 'Open'}")
+        print(f"Status: [{'red' if bug.is_open else 'green'}]{'Open' if bug.is_open else 'Resolved'}")
 
-        if task['owner'] != '':
-            print(f"Owned by: [magenta]{task['owner']}[/]")
+        if bug.owner != '':
+            print(f"Owned by: [magenta]{bug.owner}[/]")
 
-        Console().print(f"Filed on: {helpers.formatted_datetime(task['time'])}", highlight=False)
+        Console().print(f"Filed on: {helpers.formatted_datetime(bug.entered)}", highlight=False)
 
-        path = self._get_details_path(task['id'])[1]
+        path = self._get_details_path(bug.id)[1]
         if os.path.exists(path):
             with open(path) as f:
                 details = f.read()
@@ -433,10 +459,10 @@ class Bugs:
 # ----------------------------------------------------------------------------------------------------------------------
     def edit(self, prefix, template):
         """Allows the user to edit the details of the specified bug"""
-        task = self[prefix]  # confirms prefix does exist
-        path = self._get_details_path(task['id'])[1]
+        bug = self[prefix]  # confirms prefix does exist
+        path = self._get_details_path(bug.id)[1]
         if not os.path.exists(path):
-            self._make_details_file(task['id'], template)
+            self._make_details_file(bug.id, template)
         self._launch_editor(path)
 
 
@@ -455,10 +481,10 @@ class Bugs:
         """Allows the user to add a comment to the bug without launching an editor.
 
         If they have a username set, the comment will show who made it."""
-        task = self[prefix]  # confirms prefix does exist
-        path = self._get_details_path(task['id'])[1]
+        bug = self[prefix]  # confirms prefix does exist
+        path = self._get_details_path(bug.id)[1]
         if not os.path.exists(path):
-            self._make_details_file(task['id'], template)
+            self._make_details_file(bug.id, template)
 
         title = helpers.formatted_datetime()
 
@@ -467,7 +493,7 @@ class Bugs:
             title = f'{self.user} on {title}'
 
         # Assemble the comment.
-        comment = f'\n-----[ {title} ]-----\n{comment}\n\n'
+        comment = f'\n### {title}\n{comment}\n\n'
 
         # Insert the comment into the comments section.
         with open(path, "r") as handle:
@@ -475,7 +501,7 @@ class Bugs:
 
         # If a comments section exists, then insert this comment at the end of that section.
         if '\n[comments]\n' in contents:
-            find = r'(\n\[comments\]\n.*?)\n*(\n\[.+\]\n|\Z)'
+            find = r'(\n## Comments\n.*?)\n*(\n#+ |\Z)'
             replace = fr'\1\n\n{comment}\2'
             changed = re.sub(find, replace, contents, flags=re.DOTALL | re.MULTILINE)
 
@@ -494,54 +520,54 @@ class Bugs:
 # ----------------------------------------------------------------------------------------------------------------------
     def resolve(self, prefix):
         """Marks a bug as resolved"""
-        task = self[prefix]
-        task['open'] = 'False'
+        bug = self[prefix]
+        bug.is_open = False
         self._write()
 
 
 # ----------------------------------------------------------------------------------------------------------------------
     def reopen(self, prefix):
         """Reopens a bug that was previously resolved"""
-        task = self[prefix]
-        task['open'] = 'True'
+        bug = self[prefix]
+        bug.is_open = True
         self._write()
 
 
 # ----------------------------------------------------------------------------------------------------------------------
     def list(self, is_open=True, owner='*', grep='', alpha=False, chrono=False, truncate=0):
         """Lists all bugs, applying the given filters"""
-        tasks = dict(self.bugs.items())
+        bugs = dict(self.bugs.items())
 
-        prefixes = helpers.prefixes(tasks).items()
-        for task_id, prefix in prefixes:
-            tasks[task_id]['prefix'] = prefix
+        prefixes = helpers.prefixes(bugs).items()
+        for id, prefix in prefixes:
+            bugs[id].prefix = prefix
 
         if owner != '*':
             owner = self._get_user(owner)
 
-        small = [task for task in tasks.values()
-                 if helpers.truth(task['open']) == is_open
-                 and (owner == '*' or owner == task['owner'])
-                 and (grep == '' or grep.lower() in task['text'].lower())]
+        filtered = [bug for bug in bugs.values()
+                    if bug.is_open
+                    and (owner == '*' or owner == bug.owner)
+                    and (grep == '' or grep.lower() in bug.title.lower())]
 
-        if len(small) > 0:
-            plen = max([len(task['prefix']) for task in small])
+        if len(filtered) > 0:
+            plen = max([len(bug.prefix) for bug in filtered])
         else:
             plen = 0
 
         if alpha:
-            small = sorted(small, key=lambda x: x['text'].lower())
+            filtered = sorted(filtered, key=lambda x: x.title.lower())
 
         if chrono:
-            small = sorted(small, key=itemgetter('time'))
+            filtered = sorted(filtered, key=lambda bug: bug.entered)
 
-        for task in small:
-            line = '[bold cyan]%s[/bold cyan] - %s' % (task['prefix'].rjust(plen), task['text'])
+        for bug in filtered:
+            line = '[bold cyan]%s[/bold cyan] - %s' % (bug.prefix.rjust(plen), bug.title)
             if 0 < truncate < len(line):
                 line = line[:truncate - 4] + '...'
             print(line)
 
-        print(helpers.describe_print(len(small), is_open, owner, grep))
+        print(helpers.describe_print(len(filtered), is_open, owner, grep))
 
 
 # ----------------------------------------------------------------------------------------------------------------------

@@ -24,7 +24,7 @@ from rich import print
 from rich_argparse import RichHelpFormatter
 from rich.logging import RichHandler
 
-from b.bugs import Bugs
+from b.bugs import Tracker
 from b.settings import Settings
 from b import exceptions
 
@@ -288,7 +288,9 @@ def run():
     }
     with Settings(defaults) as settings:
         # Load the bug dictionary from the bugs file.
-        bugs = Bugs(settings.get('dir'), settings.get('user'), settings.get('editor'))
+        tracker = Tracker(settings.get('dir'), settings.get('user'), settings.get('editor'))
+
+        logging.info('Bugs directory: %s', tracker.bugsdir)
 
         logging.debug('Current settings:')
         logging.debug('- dir = "%s"', settings.get('dir'))
@@ -300,49 +302,52 @@ def run():
         try:
             # Handle the specified command.
             if args.command == 'add':
-                bugs.add(args.text, args.template)
+                tracker.add(args.text, args.template)
 
             elif args.command == 'init':
-                bugs.initialize(args.force)
+                tracker.initialize(args.force)
 
             elif args.command == 'assign':
-                bugs.assign(args.prefix, args.username, args.force)
+                tracker.assign(args.prefix, args.username, args.force)
 
             elif args.command == 'comment':
-                bugs.comment(args.prefix, args.text, args.template)
+                tracker.comment(args.prefix, args.text, args.template)
 
             elif args.command == 'details':
-                bugs.details(args.prefix)
+                tracker.details(args.prefix)
 
             elif args.command == 'edit':
-                bugs.edit(args.prefix, args.template)
+                tracker.edit(args.prefix, args.template)
 
             elif args.command == 'id':
-                bugs.id(args.prefix)
+                tracker.id(args.prefix)
 
             elif args.command is None or args.command == 'list':
-                bugs.list(not args.resolved, args.owner, args.grep, args.alpha, args.chrono)
+                if tracker.bugs_filename is None:
+                    print('Bug reporting not initialized')
+                else:
+                    tracker.list(not args.resolved, args.owner, args.grep, args.alpha, args.chrono)
 
             elif args.command == 'rename':
-                bugs.rename(args.prefix, args.text)
+                tracker.rename(args.prefix, args.text)
 
             elif args.command == 'resolve':
-                bugs.resolve(args.prefix)
+                tracker.resolve(args.prefix)
 
             elif args.command == 'reopen':
-                bugs.reopen(args.prefix)
+                tracker.reopen(args.prefix)
 
             elif args.command == 'users':
-                bugs.users()
+                tracker.users()
 
             elif args.command == 'templates':
                 if args.custom:
-                    bugs.customize_template(args.custom)
+                    tracker.customize_template(args.custom)
                 elif args.edit:
-                    bugs.edit_template(args.edit)
+                    tracker.edit_template(args.edit)
                 else:
                     print(f"Available {'default ' if args.defaults else ''}bug templates:")
-                    templates = bugs.list_templates(only_defaults=args.defaults)
+                    templates = tracker.list_templates(only_defaults=args.defaults)
                     for name in sorted(templates.keys()):
                         print(f'- {name} ({templates[name]})')
 
@@ -368,7 +373,7 @@ def run():
                         print(f'{key}={value}')
 
             elif args.command == 'migrate':
-                bugs.migrate()
+                tracker.migrate()
 
             elif args.command == 'version':
                 print(f'b version {version}')
@@ -382,8 +387,8 @@ def run():
 
         else:
             if 'edit' in args and args.edit:
-                prefix = args.prefix if 'prefix' in args else bugs.last_added_id
-                bugs.edit(prefix, args.template)
+                prefix = args.prefix if 'prefix' in args else tracker.last_added_id
+                tracker.edit(prefix, args.template)
 
     return 0
 

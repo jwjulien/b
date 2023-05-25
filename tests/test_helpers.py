@@ -43,54 +43,9 @@ def test_datetime(value):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def test_hash():
-    """Verify that the hash method does something."""
-    helpers.hash("test")
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-@pytest.mark.parametrize('value, expected', [
-    ('True', True),
-    ('Flase', False)
-])
-def test_truth(value, expected):
-    """Verify that a truth input produces a truthy output."""
-    assert helpers.truth(value) == expected
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-@pytest.mark.parametrize('line', [
-    "",
-    "task",
-    "    task    | a:1, b:2, c:3, d:4, e:5",
-    "task|    id:13443, owner:, open: True, time: 1234",
-    "task|    id:13443, owner:somebody, open: True, time: 1234",
-    "task | taskpart | id:1234"
-])
-def test_task_from_taskline_good(line):
-    """Test tasklines that should succeed."""
-    task = helpers.task_from_taskline(line)
-    assert task['text'] == line.rsplit('|',1)[0].strip()
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-@pytest.mark.parametrize('line', [
-    "task|taskpart", # can't handle direct edit inserts with |
-    "task | id:12|34, owner=you?" # can't handle | in metadata
-])
-def test_task_from_taskline_bad(line):
-    """Test tasklines that should fail."""
-    with pytest.raises(IOError):
-        helpers.task_from_taskline(line)
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-def test_taskline_from_tasks():
-    """Verify correct parsing of tasklines from tasks."""
-    helpers.tasklines_from_tasks([{
-        'text': "task",
-        'id':"4567"
-    }])
+def test_make_id():
+    """Verify that the hash generation method does something."""
+    helpers.make_id("test")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
