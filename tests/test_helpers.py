@@ -42,23 +42,6 @@ def test_make_id():
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def test_prefixes():
-    """Verify prefix generation produces the expected outputs."""
-    prefix_gen = ['a','abb','bbb','bbbb','cdef','cghi','defg','defh','e123456789']
-    assert helpers.prefixes(prefix_gen) == {
-        'a': 'a',
-        'abb': 'ab',
-        'defh': 'defh',
-        'cdef': 'cd',
-        'e123456789': 'e',
-        'cghi': 'cg',
-        'bbbb': 'bbbb',
-        'bbb': 'bbb',
-        'defg': 'defg'
-    }
-
-
-# ----------------------------------------------------------------------------------------------------------------------
 @pytest.mark.parametrize('count, open, owner, grep, result', [
     (1,  True,  '*',    '',     'Found 1 open bug'                                            ),
     (10, True,  '*',    '',     'Found 10 open bugs'                                          ),

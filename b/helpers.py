@@ -33,51 +33,6 @@ def make_id(existing: List[str] = None):
             return hash
 
 
-# ----------------------------------------------------------------------------------------------------------------------
-def prefixes(elements):
-    """Return a mapping of elements to their unique prefix in O(n) time.
-
-    This is much faster than the native t function, which takes O(n^2) time.
-
-    Each prefix will be the shortest possible substring of the element that
-    can uniquely identify it among the given group of elements.
-
-    If an element is entirely a substring of another, the whole string will be
-    the prefix.
-    """
-    pre = {}
-    for e in elements:
-        e_len = len(e)
-        i, prefix = None, None  # should always be overwritten
-        for i in range(1, e_len + 1):
-            # Identifies an empty prefix slot, or a singular collision
-            prefix = e[:i]
-            if prefix not in pre or (
-                    pre[prefix] != ':' and prefix != pre[prefix]):
-                break
-        if prefix in pre:
-            # Handle collisions
-            collide = pre[prefix]
-            for j in range(i, e_len + 1):
-                if collide[:j] == e[:j]:
-                    pre[e[:j]] = ':'
-                else:
-                    pre[collide[:j]] = collide
-                    pre[e[:j]] = e
-                    break
-            else:
-                pre[collide[:e_len + 1]] = collide
-                pre[e] = e
-        else:
-            # No collision, can safely add
-            pre[prefix] = e
-
-    # Invert mapping and clear placeholder key
-    pre = dict(zip(pre.values(), pre.keys()))
-    if ':' in pre:
-        del pre[':']
-    return pre
-
 
 # ----------------------------------------------------------------------------------------------------------------------
 def describe_print(num, is_open, owner, filter_by):

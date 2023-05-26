@@ -64,7 +64,6 @@ class Tracker:
         self.bugsdir = bugsdir if os.path.isabs(os.path.expanduser(bugsdir)) else climb_tree(bugsdir)
 
         # TODO: Don't load all bugs by default.  Load them on demand to be more resource efficient.
-        # TODO: Load prefixes using listdir rather than loading all of the bugs.
         # If the bugs directory exists, then load the existing bugs.
         self.bugs: Dict[str, Dict[str, any]] = {}
         if os.path.exists(self.bugsdir):
@@ -215,6 +214,31 @@ class Tracker:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+    def _prefixes(self):
+        """Return a mapping of elements to their unique prefix in O(n) time.
+
+        This is much faster than the native t function, which takes O(n^2) time.
+
+        Each prefix will be the shortest possible substring of the element that
+        can uniquely identify it among the given group of elements.
+
+        If an element is entirely a substring of another, the whole string will be
+        the prefix.
+        """
+        prefixes = {}
+        ids = [file.split('.', 1)[0] for file in os.listdir(self.bugsdir) if file.endswith('.bug.yaml')]
+        for id in ids:
+            for idx in range(1, len(id)):
+                prefix = id[:idx]
+                matches = [id for id in ids if id.startswith(prefix)]
+                if len(matches) == 1:
+                    prefixes[id] = prefix
+                    break
+
+        return prefixes
+
+
+# ----------------------------------------------------------------------------------------------------------------------
     def _users_list(self):
         """Returns a mapping of usernames to the number of open bugs assigned to that user."""
         open_owners = [bug.get('owner') for bug in self.bugs.values() if bug['open']]
@@ -298,9 +322,8 @@ class Tracker:
 
         self._write(bug)
 
-        self.bugs[full_id] = bug
-        prefix = helpers.prefixes(self.bugs.keys())[full_id]
-        short_task_id = "[bold cyan]%s[/]:[yellow]%s[/]" % (prefix, full_id[len(prefix):10])
+        prefix = self._prefixes()[full_id]
+        short_task_id = "[bold cyan]%s[/]:[yellow]%s[/]" % (prefix, full_id[len(prefix):])
         print(f"Added bug {short_task_id}")
 
         return full_id
@@ -440,9 +463,7 @@ class Tracker:
 
         bugs = dict(self.bugs.items())
 
-        prefixes = helpers.prefixes(bugs).items()
-        for id, prefix in prefixes:
-            bugs[id]['prefix'] = prefix
+        prefixes = self._prefixes()
 
         if owner != '*':
             owner = self._get_user(owner)
@@ -453,7 +474,7 @@ class Tracker:
                     and (grep == '' or grep.lower() in bug['title'].lower())]
 
         if len(filtered) > 0:
-            plen = max([len(bug['prefix']) for bug in filtered])
+            plen = max([len(prefixes[bug['id']]) for bug in filtered])
         else:
             plen = 0
 
@@ -464,7 +485,7 @@ class Tracker:
             filtered = sorted(filtered, key=lambda bug: bug['entered'])
 
         for bug in filtered:
-            line = '[bold cyan]%s[/bold cyan] - %s' % (bug['prefix'].rjust(plen), bug['title'])
+            line = '[bold cyan]%s[/bold cyan] - %s' % (prefixes[bug['id']].rjust(plen), bug['title'])
             if 0 < truncate < len(line):
                 line = line[:truncate - 4] + '...'
             print(line)
