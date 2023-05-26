@@ -347,16 +347,6 @@ class Tracker:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def users(self):
-        """Prints a list of users along with their number of open bugs."""
-        users = self._users_list()
-        width = max([len(user) for user in users.keys() if user is not None]) + 1 if len(users) > 0 else 0
-        print(f"{'Username'.rjust(width)}: Open Bugs")
-        for (user, count) in users.items():
-            print(f"{str(user).rjust(width)}: {count}")
-
-
-# ----------------------------------------------------------------------------------------------------------------------
     def assign(self, prefix, user, force=False):
         """Specifies a new owner of the bug.  Tries to guess the correct user, or warns if it cannot find an appropriate
         user.
@@ -376,28 +366,6 @@ class Tracker:
             print(f"Assigned {prefix}: '{bug['title']}' to {user}")
 
         self._write(bug)
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-    def details(self, prefix):
-        """Provides additional details on the requested bug.
-
-        Metadata (like owner, and creation time) which are not stored in the details file are displayed along with the
-        details.
-
-        Sections with no content are not displayed.
-        """
-        bug = self._get_bug(prefix)
-        print(f"Title: [{'red' if bug['open'] else 'green'}]{bug['title']}")
-        print(f"ID: [bold cyan]{prefix}[/]:[yellow]{bug['id'][len(prefix):]}")
-        print(f"Status: [{'red' if bug['open'] else 'green'}]{'Open' if bug['open'] else 'Resolved'}")
-        if bug.get('owner'):
-            print(f"Owned by: [magenta]{bug['owner']}[/]")
-
-        Console().print(f"Filed on: {bug['entered']}", highlight=False)
-
-        # TODO: Print comments.
-        # TODO: Print arbitrary remaining sections.
 
 
 
@@ -445,6 +413,38 @@ class Tracker:
         bug = self._get_bug(prefix)
         bug['open'] = True
         self._write(bug)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def details(self, prefix):
+        """Provides additional details on the requested bug.
+
+        Metadata (like owner, and creation time) which are not stored in the details file are displayed along with the
+        details.
+
+        Sections with no content are not displayed.
+        """
+        bug = self._get_bug(prefix)
+        print(f"Title: [{'red' if bug['open'] else 'green'}]{bug['title']}")
+        print(f"ID: [bold cyan]{prefix}[/]:[yellow]{bug['id'][len(prefix):]}")
+        print(f"Status: [{'red' if bug['open'] else 'green'}]{'Open' if bug['open'] else 'Resolved'}")
+        if bug.get('owner'):
+            print(f"Owned by: [magenta]{bug['owner']}[/]")
+
+        Console().print(f"Filed on: {bug['entered']}", highlight=False)
+
+        # TODO: Print comments.
+        # TODO: Print arbitrary remaining sections.
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def users(self):
+        """Prints a list of users along with their number of open bugs."""
+        users = self._users_list()
+        width = max([len(user) for user in users.keys() if user is not None]) + 1 if len(users) > 0 else 0
+        print(f"{'Username'.rjust(width)}: Open Bugs")
+        for (user, count) in users.items():
+            print(f"{str(user).rjust(width)}: {count}")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
