@@ -1,6 +1,6 @@
 title: Support more detailed details/list/users output
 type: Feature
-open: true
+open: false
 author: Jared <jaredjulien@exsystems.net>
 entered: '2023-05-26T13:14:40.877773-04:00'
 what: Add more verbose output to the details, list, and users commands.

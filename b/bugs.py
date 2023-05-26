@@ -21,7 +21,7 @@ from datetime import datetime
 from typing import Dict, List
 
 import yaml
-from rich import print
+from rich import print, box
 from rich.console import group
 from rich.panel import Panel
 from rich.table import Table
@@ -465,11 +465,15 @@ class Tracker:
 # ----------------------------------------------------------------------------------------------------------------------
     def users(self):
         """Prints a list of users along with their number of open bugs."""
-        users = self._users_list()
-        width = max([len(user) for user in users.keys() if user is not None]) + 1 if len(users) > 0 else 0
-        print(f"{'Username'.rjust(width)}: Open Bugs")
-        for (user, count) in users.items():
-            print(f"{str(user).rjust(width)}: {count}")
+        table = Table(box=box.SIMPLE_HEAD)
+
+        table.add_column('Username', justify='right', header_style='blue', style='blue')
+        table.add_column('Open Bugs', header_style='magenta', style='magenta')
+
+        for (user, count) in self._users_list().items():
+            table.add_row(user or "*unassigned*", str(count))
+
+        print(table)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
