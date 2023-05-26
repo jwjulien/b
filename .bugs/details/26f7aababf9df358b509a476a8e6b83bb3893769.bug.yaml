@@ -1,0 +1,14 @@
+type: Bug
+details: |-
+  At this point there isn't much need for Mercurial integration.  B works
+  great as a standalone command line tool and can be used with any version
+  control system with ease, including Mercurial (without the integration).
+
+  The integration effectively means there are two different "interfaces"
+  to support now, the Mercurial interface and the command line interface.
+  At the time of this writing, the new template support isn't even supported
+  by the Mercurial integration.
+
+  So, I think that it makes sense to finally axe the ties to my beloved
+  Mercurial and to instead just focus on a simpler tool with the best
+  command line support that I can possibly offer.

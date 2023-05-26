@@ -1,0 +1,15 @@
+type: Bug
+paths: b.bugs
+details: |-
+  It would be really nice to have support for more than one type of bug
+  template.
+
+  In keeping with the spirit of simplicity with this tool a simple set of
+  template files in a "templates" directory would suffice.
+
+  In keeping with the feature of overriding tempaltes, templates from the
+  project should superceed those defaults in the tool.
+
+  Further, the tool should support creating a template in the project
+  .bugs directory from the default in the tool and open it in the editor
+  for tailoring.

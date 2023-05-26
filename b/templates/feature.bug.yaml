@@ -1,0 +1,13 @@
+title: A short summary of this feature
+type: Feature
+open: true
+author: Your Name <your.email@example.com>
+entered: YYYY-MM-DDTHH:MM:SS+HH:MM
+what: |-
+  Describe the feature that you are requesting.
+  Use as many lines as you need.
+why: |-
+  Explain why this feature would be a welcome addition.
+  What problem would it resolve?
+how: |-
+  Any details or nuances that you know about?

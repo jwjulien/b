@@ -16,6 +16,9 @@ import re
 import logging
 from glob import glob
 
+from rich import print
+import yaml
+
 
 
 
@@ -44,6 +47,61 @@ def details_to_markdown(bugsdir: str):
         logging.debug('Writing contents to new file: %s', md_path)
         with open(md_path, 'w') as handle:
             handle.write(contents)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def details_to_yaml(bugsdir: str):
+    """Migrate the details files from Markdown format to YAML format.
+
+    The section headings become keys and the section content becomes string values.
+    """
+    logging.info('Performing migration from .md format detail files to .yaml format.')
+    for md_path in glob(os.path.join(bugsdir, 'details', '*.md')):
+        # logging.info('Migrating %s from .md to .yaml', md_path)
+        with open(md_path, 'r') as handle:
+            contents = handle.read()
+
+        # Parse sections into dict.
+        data = {
+            'type': 'Bug'
+        }
+        for title, content in re.findall(r'^##+ +(.+?)$(.*?)(?=^##|\Z)', contents, re.MULTILINE | re.DOTALL):
+            title = title.lower().replace(' ', '_')
+            if title != 'comments':
+                data[title] = content.strip()
+
+                if title == 'why':
+                    data['type'] = 'Feature'
+            else:
+                comments = []
+                pattern = r'---+\[ *(.+?) +on +(.+?) *\]-+\n(.+?)(?:\n-|\Z)'
+                for author, date, text in re.findall(pattern, content, re.DOTALL):
+                    comments.append({
+                        'author': author,
+                        'date': date,
+                        'text': text
+                    })
+                if comments:
+                    data['comments'] = comments
+
+        def str_presenter(dumper, data):
+            if len(data.splitlines()) > 1:  # check for multiline string
+                return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+            return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+        yaml.representer.SafeRepresenter.add_representer(str, str_presenter)
+
+        # Write YAML to new filename.
+        yaml_path = os.path.splitext(md_path)[0] + '.bug.yaml'
+        if os.path.exists(yaml_path):
+            logging.error('YAML already exists at %s', yaml_path)
+            continue
+        logging.debug('Writing YAML contents to %s', yaml_path)
+        with open(yaml_path, 'w') as handle:
+            yaml.safe_dump(data, handle, sort_keys=False)
+
+        # Remove the original .md file.
+        logging.debug('Deleting original .md file: %s', md_path)
+        os.remove(md_path)
 
 
 

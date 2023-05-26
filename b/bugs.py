@@ -17,55 +17,11 @@ import shutil
 import subprocess
 import time
 from typing import Dict
-from dataclasses import dataclass, field
-from enum import Enum
 
 from rich import print
 from rich.console import Console
 
 from b import exceptions, helpers, migrations
-
-
-
-
-# ======================================================================================================================
-# Bug Class
-# ----------------------------------------------------------------------------------------------------------------------
-@dataclass
-class Bug:
-    """Represents a single Bug with methods to import and export from and to detail files.
-
-    The filename of the details file represents the ID of the bug, which is also a SHA1 hash so as to be unique and
-    (ideally) prevent conflicts when merging two projects together.
-    """
-    title: str
-    id: str
-    is_open: bool = True
-    entered: int = field(default_factory=time.time)
-    owner: str = None
-
-    @staticmethod
-    def from_taskline(line: str) -> 'Bug':
-        meta = {}
-        if '|' in line:
-            title, other = line.rsplit('|', 1)
-            for piece in other.strip().split(','):
-                label, data = piece.split(':', 1)
-                meta[label.strip()] = data.strip()
-        else:
-            title = line.strip()
-
-        id = meta.get('id', helpers.make_id())
-        is_open = bool(meta.get('open', '').lower() != 'false')
-        entered = meta.get('time', time.time())
-        owner = meta.get('owner')
-
-        return Bug(title=title.strip(), id=id, is_open=is_open, entered=entered, owner=owner)
-
-
-    def to_taskline(self) -> str:
-        return f'{self.title.ljust(60)} | id:{self.id},open:{self.is_open},time:{self.entered},owner:{self.owner}'
-
 
 
 
@@ -108,15 +64,33 @@ class Tracker:
         self.bugsdir = bugsdir if os.path.isabs(os.path.expanduser(bugsdir)) else climb_tree(bugsdir)
 
         # If the bugs directory exists, then load the existing bugs.
-        self.bugs: Dict[str, Bug] = {}
+        self.bugs: Dict[str, Dict[str, any]] = {}
         self.bugs_filename = None
         if self.bugsdir is not None and os.path.exists(self.bugsdir):
             self.bugs_filename = os.path.join(self.bugsdir, 'bugs')
             if os.path.exists(self.bugs_filename):
                 with open(self.bugs_filename, 'r') as handle:
                     lines = handle.readlines()
-                bugs = [Bug.from_taskline(line.strip()) for line in lines if line.strip()]
-                self.bugs = dict((bug.id, bug) for bug in bugs)
+                bugs = []
+                for line in lines:
+                    meta = {}
+                    if '|' in line:
+                        title, other = line.rsplit('|', 1)
+                        meta['title'] = title.strip()
+                        for piece in other.strip().split(','):
+                            label, data = piece.split(':', 1)
+                            meta[label.strip()] = data.strip()
+                    else:
+                        meta['title'] = line.strip()
+
+                    bugs.append({
+                        'title': title.strip(),
+                        'id': meta.get('id', helpers.make_id()),
+                        'open': bool(meta.get('open', '').lower() != 'false'),
+                        'entered': meta.get('time', time.time()),
+                        'owner': meta.get('owner')
+                    })
+                self.bugs = dict((bug['id'], bug) for bug in bugs)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -125,8 +99,9 @@ class Tracker:
         if self.bugs_filename is None:
             raise exceptions.NotInitialized('No bugs directory found for the current directory')
         with open(self.bugs_filename, 'w') as tfile:
-            for bug in sorted(self.bugs.values(), key=lambda bug: bug.id):
-                tfile.write(bug.to_taskline())
+            for bug in sorted(self.bugs.values(), key=lambda bug: bug['id']):
+                attributes = f"id:{bug['id']},open:{bug['open']},time:{bug['entered']},owner:{bug['owner']}"
+                tfile.write(f"{bug['title'].ljust(60)} | {attributes}")
 
 
 
@@ -248,7 +223,7 @@ class Tracker:
     def _get_details_path(self, full_id):
         """Returns the directory and file path to the details specified by id."""
         dirpath = os.path.join(self.bugsdir, 'details')
-        path = os.path.join(dirpath, full_id + ".md")
+        path = os.path.join(dirpath, full_id + ".bug.yaml")
         return dirpath, path
 
 
@@ -278,8 +253,8 @@ class Tracker:
 # ----------------------------------------------------------------------------------------------------------------------
     def _users_list(self):
         """Returns a mapping of usernames to the number of open bugs assigned to that user."""
-        open_tasks = [bug.owner for bug in self.bugs.values() if bug.is_open]
-        closed = [bug.owner for bug in self.bugs.values() if not bug.is_open]
+        open_tasks = [bug['owner'] for bug in self.bugs.values() if bug['open']]
+        closed = [bug['owner'] for bug in self.bugs.values() if not bug['open']]
         users = {}
         for user in open_tasks:
             if user in users:
@@ -338,17 +313,22 @@ class Tracker:
 # ----------------------------------------------------------------------------------------------------------------------
     def add(self, title, template):
         """Adds a new bug to the list."""
-        bug = Bug(title=title, id=helpers.make_id(self.bugs.keys()))
-        self.bugs[bug.id] = bug
+        bug = {
+            'title': title,
+            'id': helpers.make_id(self.bugs.keys()),
+            'open': True,
+            'owner': None
+        }
+        self.bugs[bug['id']] = bug
 
-        self.last_added_id = bug.id
-        prefix = helpers.prefixes(self.bugs.keys())[bug.id]
-        short_task_id = "[bold cyan]%s[/]:[yellow]%s[/]" % (prefix, bug.id[len(prefix):10])
+        self.last_added_id = bug['id']
+        prefix = helpers.prefixes(self.bugs.keys())[bug['id']]
+        short_task_id = "[bold cyan]%s[/]:[yellow]%s[/]" % (prefix, bug['id'][len(prefix):10])
         self._write()
 
         # If the user specified a template then add a detail file now.
         if template is not None:
-            self._make_details_file(bug.id, template)
+            self._make_details_file(bug['id'], template)
 
         print(f"Added bug {short_task_id}")
 
@@ -366,9 +346,9 @@ class Tracker:
         if title.startswith('s/') or title.startswith('/'):
             title = re.sub('^s?/', '', title).rstrip('/')
             find, _, repl = title.partition('/')
-            title = re.sub(find, repl, bug.title)
+            title = re.sub(find, repl, bug['title'])
 
-        bug.title = title
+        bug['title'] = title
         self._write()
 
 
@@ -394,13 +374,13 @@ class Tracker:
         """
         bug = self[prefix]
         user = self._get_user(user, force)
-        bug.owner = user
+        bug['owner'] = user
 
         if user == '':
             user = 'Nobody'
 
         self._write()
-        print(f"Assigned {prefix}: '{bug.title}' to {user}")
+        print(f"Assigned {prefix}: '{bug['title']}' to {user}")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -414,18 +394,18 @@ class Tracker:
         """
         bug = self[prefix]  # confirms prefix does exist
 
-        print(f"Title: [{'red' if bug.is_open else 'green'}]{bug.title}")
+        print(f"Title: [{'red' if bug['open'] else 'green'}]{bug['title']}")
 
-        print(f"ID: [bold cyan]{prefix}[/]:[yellow]{bug.id[len(prefix):]}")
+        print(f"ID: [bold cyan]{prefix}[/]:[yellow]{bug['id'][len(prefix):]}")
 
-        print(f"Status: [{'red' if bug.is_open else 'green'}]{'Open' if bug.is_open else 'Resolved'}")
+        print(f"Status: [{'red' if bug['open'] else 'green'}]{'Open' if bug['open'] else 'Resolved'}")
 
-        if bug.owner != '':
-            print(f"Owned by: [magenta]{bug.owner}[/]")
+        if bug['owner'] != '':
+            print(f"Owned by: [magenta]{bug['owner']}[/]")
 
-        Console().print(f"Filed on: {helpers.formatted_datetime(bug.entered)}", highlight=False)
+        Console().print(f"Filed on: {helpers.formatted_datetime(bug['entered'])}", highlight=False)
 
-        path = self._get_details_path(bug.id)[1]
+        path = self._get_details_path(bug['id'])[1]
         if os.path.exists(path):
             with open(path) as f:
                 details = f.read()
@@ -460,9 +440,9 @@ class Tracker:
     def edit(self, prefix, template):
         """Allows the user to edit the details of the specified bug"""
         bug = self[prefix]  # confirms prefix does exist
-        path = self._get_details_path(bug.id)[1]
+        path = self._get_details_path(bug['id'])[1]
         if not os.path.exists(path):
-            self._make_details_file(bug.id, template)
+            self._make_details_file(bug['id'], template)
         self._launch_editor(path)
 
 
@@ -482,9 +462,9 @@ class Tracker:
 
         If they have a username set, the comment will show who made it."""
         bug = self[prefix]  # confirms prefix does exist
-        path = self._get_details_path(bug.id)[1]
+        path = self._get_details_path(bug['id'])[1]
         if not os.path.exists(path):
-            self._make_details_file(bug.id, template)
+            self._make_details_file(bug['id'], template)
 
         title = helpers.formatted_datetime()
 
@@ -521,7 +501,7 @@ class Tracker:
     def resolve(self, prefix):
         """Marks a bug as resolved"""
         bug = self[prefix]
-        bug.is_open = False
+        bug['open'] = False
         self._write()
 
 
@@ -529,7 +509,7 @@ class Tracker:
     def reopen(self, prefix):
         """Reopens a bug that was previously resolved"""
         bug = self[prefix]
-        bug.is_open = True
+        bug['open'] = True
         self._write()
 
 
@@ -540,18 +520,18 @@ class Tracker:
 
         prefixes = helpers.prefixes(bugs).items()
         for id, prefix in prefixes:
-            bugs[id].prefix = prefix
+            bugs[id]['prefix'] = prefix
 
         if owner != '*':
             owner = self._get_user(owner)
 
         filtered = [bug for bug in bugs.values()
-                    if bug.is_open
-                    and (owner == '*' or owner == bug.owner)
-                    and (grep == '' or grep.lower() in bug.title.lower())]
+                    if bug['open'] == is_open
+                    and (owner == '*' or owner == bug['owner'])
+                    and (grep == '' or grep.lower() in bug['title'].lower())]
 
         if len(filtered) > 0:
-            plen = max([len(bug.prefix) for bug in filtered])
+            plen = max([len(bug['prefix']) for bug in filtered])
         else:
             plen = 0
 
@@ -559,10 +539,10 @@ class Tracker:
             filtered = sorted(filtered, key=lambda x: x.title.lower())
 
         if chrono:
-            filtered = sorted(filtered, key=lambda bug: bug.entered)
+            filtered = sorted(filtered, key=lambda bug: bug['entered'])
 
         for bug in filtered:
-            line = '[bold cyan]%s[/bold cyan] - %s' % (bug.prefix.rjust(plen), bug.title)
+            line = '[bold cyan]%s[/bold cyan] - %s' % (bug['prefix'].rjust(plen), bug['title'])
             if 0 < truncate < len(line):
                 line = line[:truncate - 4] + '...'
             print(line)
@@ -574,6 +554,9 @@ class Tracker:
     def migrate(self) -> None:
         """Migrate the current bugs directory to the latest version."""
         migrations.details_to_markdown(self.bugsdir)
+        migrations.details_to_yaml(self.bugsdir)
+        # migrations.move_details_to_bugs_root(self.bugsdir)
+        # migrations.bug_dict_into_yaml_details(self.bugs_filename, self.bugsdir)
 
 
 

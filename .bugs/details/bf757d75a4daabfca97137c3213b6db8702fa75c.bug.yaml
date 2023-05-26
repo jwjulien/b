@@ -1,0 +1,23 @@
+type: Bug
+reporter: jared
+details: |-
+  When I try to add the first comment to the end of the file with an
+  empty comments section it fails.
+reproduce: |-
+  1. Create a new bug.
+  2. Edit the details file for the new bug to clean out the comments section entirely.
+  3. Attempt to add a new comment to the bug.
+  4. Observe no error at the command line.
+  5. Edit the bug's details file again and observe that the comment has not been added.
+expected: Would expect the comment to appear in the details file or an error message.
+actual: No error, just doesn't do anything.
+paths: b.dict
+fix: |-
+  Two pronged:
+
+  1. Add a check in the `comments` method to verify that the contents of the details
+     file have changed after the `re` is run and raise an exception if the before and
+     after at the same.
+
+  2. Fix the regular expression which clearly isn't matching the completely empty
+     comments section scenario.

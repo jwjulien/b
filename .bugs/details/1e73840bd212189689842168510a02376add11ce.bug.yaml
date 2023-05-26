@@ -1,0 +1,32 @@
+type: Bug
+details: |-
+  Recursively search up from the current folder to find the .bugs directory
+  (or whatever the user has configured the name of the directory to be).
+
+  This behavior would better mimic how `b` would have worked as a Mercurial
+  extension, where the commond would work to write the top-level project
+  .bugs directory from any sub-direcotry in the project, not just the top level.
+
+  This proposal has one problem - if the bugs directory doesn't exist, then
+  how should it be created?  Bug de439ffd9b3ea729d1f2a44be91191ed9995e108 has
+  also been submitted suggesting that an init command be added to explicitly
+  allow a user to specify when and where a bugs directory should be created.
+reproduce: |-
+  1. Create a new project with a subdirectory inside.
+  2. From the root of the project, run `b add "bug one"`.
+  3. Observe that a .bugs directory has been created at the top level.
+  4. `cd` into the subdirectory.
+  5. Run `b add "a second bug"`.
+  6. Observe that a new `.bugs` directory has been created in the subdirectory.
+expected: |-
+  The "second bug" should have been added to the base ".bugs" directory of the
+  top-level project folder, along with "bug one".
+actual: |-
+  A new ".bugs" directory was created in the subfolder with "second bug" added
+  only to that.
+fix: |-
+  From the absolute path of the current working directory, walk up the
+  directory structure searching for a path containing the bugs directory.
+  Stop at the first match and use it.
+
+  If no directory can be found, then throw an error indicating such.

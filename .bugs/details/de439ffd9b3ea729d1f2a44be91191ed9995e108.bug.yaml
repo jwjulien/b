@@ -1,0 +1,23 @@
+type: Bug
+reporter: Jared
+details: |-
+  Add a new `init` command to generate a new .bugs directory and dictionary.
+
+  This would make `b` behave more like Mercurial/Git - needing to initialize the
+  directory for the tool before using it.
+
+  That also means that commands like `add` should fail when `init` has yet to be
+  run in a project.
+reproduce: |-
+  From an empty folder run:
+
+      b add "new bug"
+expected: Should get an error saying no .bugs directory was found.
+actual: |-
+  The tool just creates the .bugs directory and adds a new bug.
+
+  Fundamentally this isn't a problem, but in conjunction with another bug
+  being filed, this will create a new .bugs directory in the current directory
+  rather than allowing the tool to recursively search upwards for a .bugs directory.
+  See 1e73840bd212189689842168510a02376add11ce for more detail about this new,
+  proposed feature.

@@ -1,0 +1,20 @@
+title: A short summary of this feature
+type: Bug
+open: true
+author: Your Name <your.email@example.com>
+entered: YYYY-MM-DDTHH:MM:SS+HH:MM
+details: What additional information can you provide about this bug?
+reproduce:
+  - "Step one"
+  - "Step two"
+  - "Step three"
+expected: What did you expect to happen?
+actual: What actually happened instead?
+stacktrace: Copy/paste the stacktrace or error text you saw, if applicable.
+environment: |-
+  Anything special about your setup?
+  Hardware?
+  OS?
+  Software versions?
+
+  List anything that would be important when trying to reproduce this issue.

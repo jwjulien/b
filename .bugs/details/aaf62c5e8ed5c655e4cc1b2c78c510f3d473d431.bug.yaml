@@ -1,0 +1,14 @@
+type: Feature
+what: Change from plain text (.txt) files to Markdown (.md) files for details files.
+why: |-
+  I'm already encouraging the use of Markdown in the .txt files.  Switching the
+  file extension means that editors such as VSCode will actually treat it as such
+  and provide handy editing features and highlighting to boot.
+how: |-
+  Should be as simple as changing the file extensions.
+
+  Might want to consider a migration?  Handle converting existing .txt files
+  to .md files?
+
+  I think that it also make sense to change the sections from "[boxed]" format,
+  as sexy as they are, to Markdown "## Headings" for consistency.

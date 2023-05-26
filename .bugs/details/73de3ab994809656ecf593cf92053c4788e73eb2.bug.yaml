@@ -1,0 +1,10 @@
+type: Feature
+what: Add support for colored output back to the terminal.
+why: Would make it easier to denot prefixes and to show open vs. closed bugs.
+how: |-
+  Suggested color scheme:
+
+  - Prefixes: blue
+  - IDs: yellow
+  - Open bugs: red
+  - Closed bugs: green
