@@ -1,3 +1,7 @@
+title: move bug attributes into details file
+open: false
+owner: jared
+entered: '2023-05-24T10:23:59.447554-05:00'
 type: Feature
 what: Move the title of the bug from the dict into the detail file as the first line
   of text.

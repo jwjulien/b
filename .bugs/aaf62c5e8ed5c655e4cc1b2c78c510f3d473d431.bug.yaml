@@ -1,3 +1,7 @@
+title: switch to Markdown
+open: false
+owner: jared
+entered: '2023-05-24T10:20:31.419407-05:00'
 type: Feature
 what: Change from plain text (.txt) files to Markdown (.md) files for details files.
 why: |-

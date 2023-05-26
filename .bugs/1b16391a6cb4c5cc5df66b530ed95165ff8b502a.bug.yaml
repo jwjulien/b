@@ -1,3 +1,7 @@
+title: add comments to comment section rather than EOF
+open: false
+owner: jared <jaredjulien@exsystems.net>
+entered: '2023-04-20T11:13:43.507998-05:00'
 type: Bug
 paths: b.bugs
 details: |-

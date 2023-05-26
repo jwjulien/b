@@ -35,16 +35,6 @@ from b import exceptions
 # ======================================================================================================================
 # Helper Functions
 # ----------------------------------------------------------------------------------------------------------------------
-def _add_arg_template(parser):
-    """Add an argument to specify the template to use when creating a new details file along with the command."""
-    parser.add_argument(
-        '-t',
-        '--template',
-        help='specify template for new detail file (default: bug) - use `templates` command to list templates'
-    )
-
-
-# ----------------------------------------------------------------------------------------------------------------------
 def _add_arg_edit(parser):
     """The edit flag is common across several subparsers.  This helper sets the same attributes for each."""
     parser.add_argument(
@@ -54,7 +44,6 @@ def _add_arg_edit(parser):
         default=False,
         help='launch details editor for the bug'
     )
-    _add_arg_template(parser)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -111,6 +100,12 @@ def run():
                                      help='adds a new open bug to the database',
                                      formatter_class=RichHelpFormatter)
     _add_arg_text(parser_add, 'title text for the new bug')
+    parser_add.add_argument(
+        '-t',
+        '--template',
+        default='bug',
+        help='specify template for new bug (default: bug) - use `templates` command to list available templates'
+    )
     _add_arg_edit(parser_add)
 
     parser_rename = commands.add_parser('rename',
@@ -149,7 +144,6 @@ def run():
                                       help='launch the system editor to provide additional details',
                                       formatter_class=RichHelpFormatter)
     _add_arg_prefix(parser_edit)
-    _add_arg_template(parser_edit)
 
     parser_comment = commands.add_parser('comment',
                                          help='append the provided comment to the details of the bug',
@@ -302,7 +296,7 @@ def run():
         try:
             # Handle the specified command.
             if args.command == 'add':
-                tracker.add(args.text, args.template)
+                args.prefix = tracker.add(args.text, args.template)
 
             elif args.command == 'init':
                 tracker.initialize(args.force)
@@ -311,22 +305,19 @@ def run():
                 tracker.assign(args.prefix, args.username, args.force)
 
             elif args.command == 'comment':
-                tracker.comment(args.prefix, args.text, args.template)
+                tracker.comment(args.prefix, args.text)
 
             elif args.command == 'details':
                 tracker.details(args.prefix)
 
             elif args.command == 'edit':
-                tracker.edit(args.prefix, args.template)
+                tracker.edit(args.prefix)
 
             elif args.command == 'id':
                 tracker.id(args.prefix)
 
             elif args.command is None or args.command == 'list':
-                if tracker.bugs_filename is None:
-                    print('Bug reporting not initialized')
-                else:
-                    tracker.list(not args.resolved, args.owner, args.grep, args.alpha, args.chrono)
+                tracker.list(not args.resolved, args.owner, args.grep, args.alpha, args.chrono)
 
             elif args.command == 'rename':
                 tracker.rename(args.prefix, args.text)
@@ -387,8 +378,7 @@ def run():
 
         else:
             if 'edit' in args and args.edit:
-                prefix = args.prefix if 'prefix' in args else tracker.last_added_id
-                tracker.edit(prefix, args.template)
+                tracker.edit(args.prefix)
 
     return 0
 

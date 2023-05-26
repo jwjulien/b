@@ -13,11 +13,13 @@
 # ----------------------------------------------------------------------------------------------------------------------
 import os
 import re
+from glob import glob
 import shutil
 import subprocess
-import time
+from datetime import datetime
 from typing import Dict
 
+import yaml
 from rich import print
 from rich.console import Console
 
@@ -44,8 +46,6 @@ class Tracker:
         self.user = user
         self.editor = editor
 
-        self.last_added_id = None
-
         def climb_tree(reference) -> str:
             working = os.getcwd()
             while True:
@@ -63,45 +63,38 @@ class Tracker:
         bugsdir = os.path.expanduser(bugsdir)
         self.bugsdir = bugsdir if os.path.isabs(os.path.expanduser(bugsdir)) else climb_tree(bugsdir)
 
+        # TODO: Don't load all bugs by default.  Load them on demand to be more resource efficient.
+        # TODO: Load prefixes using listdir rather than loading all of the bugs.
         # If the bugs directory exists, then load the existing bugs.
         self.bugs: Dict[str, Dict[str, any]] = {}
-        self.bugs_filename = None
-        if self.bugsdir is not None and os.path.exists(self.bugsdir):
-            self.bugs_filename = os.path.join(self.bugsdir, 'bugs')
-            if os.path.exists(self.bugs_filename):
-                with open(self.bugs_filename, 'r') as handle:
-                    lines = handle.readlines()
-                bugs = []
-                for line in lines:
-                    meta = {}
-                    if '|' in line:
-                        title, other = line.rsplit('|', 1)
-                        meta['title'] = title.strip()
-                        for piece in other.strip().split(','):
-                            label, data = piece.split(':', 1)
-                            meta[label.strip()] = data.strip()
-                    else:
-                        meta['title'] = line.strip()
-
-                    bugs.append({
-                        'title': title.strip(),
-                        'id': meta.get('id', helpers.make_id()),
-                        'open': bool(meta.get('open', '').lower() != 'false'),
-                        'entered': meta.get('time', time.time()),
-                        'owner': meta.get('owner')
-                    })
-                self.bugs = dict((bug['id'], bug) for bug in bugs)
+        if os.path.exists(self.bugsdir):
+            for filename in glob(os.path.join(self.bugsdir, '*.bug.yaml')):
+                id = os.path.basename(filename).split('.', 1)[0]
+                with open(filename, 'r') as handle:
+                    data = yaml.safe_load(handle)
+                data['id'] = id
+                self.bugs[id] = data
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def _write(self):
+    def _write(self, bug: Dict[str, any]):
         """Flush the finished and unfinished tasks to the files on disk."""
-        if self.bugs_filename is None:
+        if not os.path.exists(self.bugsdir):
             raise exceptions.NotInitialized('No bugs directory found for the current directory')
-        with open(self.bugs_filename, 'w') as tfile:
-            for bug in sorted(self.bugs.values(), key=lambda bug: bug['id']):
-                attributes = f"id:{bug['id']},open:{bug['open']},time:{bug['entered']},owner:{bug['owner']}"
-                tfile.write(f"{bug['title'].ljust(60)} | {attributes}")
+
+        def str_presenter(dumper, data):
+            if len(data.splitlines()) > 1:  # check for multiline string
+                return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+            return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+        yaml.representer.SafeRepresenter.add_representer(str, str_presenter)
+
+        filename = self._get_details_path(bug['id'])
+        bug = dict(bug)
+        del bug['id']
+        with open(filename, 'w') as handle:
+            # TODO: What about sorting the keys in our desired order here?
+            # TODO: We should probably warn when the bug violates the schema too.
+            yaml.safe_dump(bug, handle, sort_keys=False)
 
 
 
@@ -110,8 +103,8 @@ class Tracker:
         """Initialize a new bugs directory at the current working directory."""
         # Warn the user about creating a bugs directory if one was already found in a folder above.
         # Using the "-f" argument to "force" the creation will put a new bugs directory here too.
-        if self.bugs_filename is not None and not force:
-            message = f'Bugs directory already exists at {self.bugs_filename} - use -f to force creation here'
+        if os.path.exists(self.bugsdir) and not force:
+            message = f'Bugs directory already exists at {self.bugsdir} - use -f to force creation here'
             raise exceptions.AlreadyInitialized(message)
 
         # Attempt to make the directory as specified, if it exists the exception will be morphed into AlreadyExists.
@@ -119,10 +112,6 @@ class Tracker:
             os.makedirs(self.bugsdir)
         except OSError as error:
             raise exceptions.AlreadyInitialized('Bugs directory already exists in this exact location') from error
-
-        # Set the path for the bugs directory and dictionary file and write it.  File will be empty for now.
-        self.bugs_filename = os.path.join(self.bugsdir, 'bugs')
-        self._write()
 
         print(f'Initialized a bugs directory at "{os.path.abspath(self.bugsdir)}"')
 
@@ -148,7 +137,7 @@ class Tracker:
                 return
             for template in os.listdir(directory):
                 path = os.path.join(directory, template)
-                name = os.path.splitext(template)[0]
+                name = template.rsplit('.', 2)[0]
                 templates[name] = path
 
         # Start with a list of templates from the template folder within the `b` package.
@@ -222,50 +211,26 @@ class Tracker:
 # ----------------------------------------------------------------------------------------------------------------------
     def _get_details_path(self, full_id):
         """Returns the directory and file path to the details specified by id."""
-        path = os.path.join(self.bugsdir, full_id + ".bug.yaml")
-        return path
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-    def _make_details_file(self, full_id, template):
-        """Create a details file for the given id."""
-        # Default to the "bug" template when the user didn't specify.
-        if template is None:
-            template = 'bug'
-
-        # Generate the directory path for detail files if it doesn't exist.
-        path = self._get_details_path(full_id)
-
-        # Add the new detail file from template.
-        templates = self.list_templates()
-        if not os.path.exists(path):
-            try:
-                template_path = templates[template]
-            except KeyError as error:
-                raise exceptions.TemplateError(f'Template "{template}" does not exist') from error
-            shutil.copy(template_path, path)
-        return path
+        return os.path.join(self.bugsdir, full_id + ".bug.yaml")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
     def _users_list(self):
         """Returns a mapping of usernames to the number of open bugs assigned to that user."""
-        open_tasks = [bug['owner'] for bug in self.bugs.values() if bug['open']]
-        closed = [bug['owner'] for bug in self.bugs.values() if not bug['open']]
-        users = {}
-        for user in open_tasks:
-            if user in users:
-                users[user] += 1
-            else:
-                users[user] = 1
-        for user in closed:
-            if user not in users:
-                users[user] = 0
-
-        if '' in users:
-            users['*unassigned*'] = users['']
-            del users['']
-        return users
+        open_owners = [bug.get('owner') for bug in self.bugs.values() if bug['open']]
+        closed_owners = [bug.get('owner') for bug in self.bugs.values() if not bug['open']]
+        owners = set(open_owners + closed_owners)
+        print(owners)
+        counts = {}
+        for bug in self.bugs.values():
+            owner = bug.get('owner')
+            if owner not in counts:
+                counts[owner] = 0
+            if bug['open']:
+                counts[owner] += 1
+        print(list(counts.items()))
+        counts = dict(sorted(list(counts.items()), key=lambda count: count[1], reverse=True))
+        return counts
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -286,7 +251,7 @@ class Tracker:
         if not force:
             if user not in users:
                 usr = user.lower()
-                matched = [u for u in users if u.lower().startswith(usr)]
+                matched = [u for u in users if u and u.lower().startswith(usr)]
                 if len(matched) > 1:
                     raise exceptions.AmbiguousUser(user, matched)
                 if len(matched) == 0:
@@ -310,24 +275,35 @@ class Tracker:
 # ----------------------------------------------------------------------------------------------------------------------
     def add(self, title, template):
         """Adds a new bug to the list."""
-        bug = {
-            'title': title,
-            'id': helpers.make_id(self.bugs.keys()),
-            'open': True,
-            'owner': None
-        }
-        self.bugs[bug['id']] = bug
+        # Add the new detail file from template.
+        templates = self.list_templates()
+        try:
+            template_path = templates[template]
+        except KeyError as error:
+            message = f'Template "{template}" does not exist - use `template` command to view available templates'
+            raise exceptions.TemplateError(message) from error
 
-        self.last_added_id = bug['id']
-        prefix = helpers.prefixes(self.bugs.keys())[bug['id']]
-        short_task_id = "[bold cyan]%s[/]:[yellow]%s[/]" % (prefix, bug['id'][len(prefix):10])
-        self._write()
+        # Load YAML from template.
+        with open(template_path, 'r') as handle:
+            bug = yaml.safe_load(handle)
 
-        # If the user specified a template then add a detail file now.
-        if template is not None:
-            self._make_details_file(bug['id'], template)
+        full_id = helpers.make_id(self.bugs.keys())
 
+        # Populate default attributes.
+        bug['id'] = full_id
+        bug['title'] = title
+        bug['entered'] = datetime.now().astimezone().isoformat()
+        bug['author'] = self.user
+        bug['open'] = True
+
+        self._write(bug)
+
+        self.bugs[full_id] = bug
+        prefix = helpers.prefixes(self.bugs.keys())[full_id]
+        short_task_id = "[bold cyan]%s[/]:[yellow]%s[/]" % (prefix, full_id[len(prefix):10])
         print(f"Added bug {short_task_id}")
+
+        return full_id
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -346,20 +322,17 @@ class Tracker:
             title = re.sub(find, repl, bug['title'])
 
         bug['title'] = title
-        self._write()
+        self._write(bug)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
     def users(self):
         """Prints a list of users along with their number of open bugs."""
         users = self._users_list()
-        if len(users) > 0:
-            ulen = max([len(user) for user in users.keys()]) + 1
-        else:
-            ulen = 0
-        print("Username: Open Bugs")
+        width = max([len(user) for user in users.keys() if user is not None]) + 1 if len(users) > 0 else 0
+        print(f"{'Username'.rjust(width)}: Open Bugs")
         for (user, count) in users.items():
-            print(f"{user}: {str(count).rjust(ulen - len(user))}")
+            print(f"{str(user).rjust(width)}: {count}")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -376,7 +349,7 @@ class Tracker:
         if user == '':
             user = 'Nobody'
 
-        self._write()
+        self._write(bug)
         print(f"Assigned {prefix}: '{bug['title']}' to {user}")
 
 
@@ -390,56 +363,24 @@ class Tracker:
         Sections with no content are not displayed.
         """
         bug = self[prefix]  # confirms prefix does exist
-
         print(f"Title: [{'red' if bug['open'] else 'green'}]{bug['title']}")
-
         print(f"ID: [bold cyan]{prefix}[/]:[yellow]{bug['id'][len(prefix):]}")
-
         print(f"Status: [{'red' if bug['open'] else 'green'}]{'Open' if bug['open'] else 'Resolved'}")
-
-        if bug['owner'] != '':
+        if bug.get('owner'):
             print(f"Owned by: [magenta]{bug['owner']}[/]")
 
-        Console().print(f"Filed on: {helpers.formatted_datetime(bug['entered'])}", highlight=False)
+        Console().print(f"Filed on: {bug['entered']}", highlight=False)
 
-        path = self._get_details_path(bug['id'])
-        if os.path.exists(path):
-            with open(path) as f:
-                details = f.read()
-
-            # Strip comments.
-            details = re.sub("(?m)^#.*\n?", "", details)
-
-            # Remove empty sections.
-            while True:
-                previous = details
-                details = re.sub("\[\w+\]\s+\[", "[", details)
-                if previous == details:
-                    break
-
-            # Remove, possibly, empty last section.
-            details = re.sub("\[\w+\]\s*$", "", details)
-
-            # Escape the section headers for Rich and add some color.
-            details = '\n' + details
-            details = re.sub('\n\[(.+?)\]', r'\n[blue]\\[\1][/]', details)
-
-            # Reduce many (3+) blank lines down to two maximum.
-            details = re.sub('\n\n+', '\n\n', details)
-
-            print(details.strip())
-        else:
-            print('No additional details file found.')
+        # TODO: Print comments.
+        # TODO: Print arbitrary remaining sections.
 
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def edit(self, prefix, template):
+    def edit(self, prefix):
         """Allows the user to edit the details of the specified bug"""
         bug = self[prefix]  # confirms prefix does exist
         path = self._get_details_path(bug['id'])
-        if not os.path.exists(path):
-            self._make_details_file(bug['id'], template)
         self._launch_editor(path)
 
 
@@ -454,44 +395,25 @@ class Tracker:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def comment(self, prefix, comment, template):
+    def comment(self, prefix, text):
         """Allows the user to add a comment to the bug without launching an editor.
 
         If they have a username set, the comment will show who made it."""
         bug = self[prefix]  # confirms prefix does exist
-        path = self._get_details_path(bug['id'])
-        if not os.path.exists(path):
-            self._make_details_file(bug['id'], template)
 
-        title = helpers.formatted_datetime()
+        # Add a new comments section to the bug if it doesn't already exist.
+        if 'comments' not in bug:
+            bug['comments'] = []
 
-        # If the user has a known name, prepend that to the title.
-        if self.user != '':
-            title = f'{self.user} on {title}'
+        # Append this comment to the bug.
+        bug['comments'].append({
+            'author': self.user,
+            'date': datetime.now().astimezone().isoformat(),
+            'text': text
+        })
 
-        # Assemble the comment.
-        comment = f'\n### {title}\n{comment}\n\n'
-
-        # Insert the comment into the comments section.
-        with open(path, "r") as handle:
-            contents = handle.read()
-
-        # If a comments section exists, then insert this comment at the end of that section.
-        if '\n[comments]\n' in contents:
-            find = r'(\n## Comments\n.*?)\n*(\n#+ |\Z)'
-            replace = fr'\1\n\n{comment}\2'
-            changed = re.sub(find, replace, contents, flags=re.DOTALL | re.MULTILINE)
-
-            # Make sure that the comment was actually injected.
-            assert changed != contents
-
-            with open(path, "w") as handle:
-                handle.write(changed)
-
-        # If no comments section exists then append it instead.
-        else:
-            with open(path, 'a') as handle:
-                handle.write(f'\n\n[comments]{comment}')
+        # Write the bug back to file.
+        self._write(bug)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -499,7 +421,7 @@ class Tracker:
         """Marks a bug as resolved"""
         bug = self[prefix]
         bug['open'] = False
-        self._write()
+        self._write(bug)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -507,12 +429,15 @@ class Tracker:
         """Reopens a bug that was previously resolved"""
         bug = self[prefix]
         bug['open'] = True
-        self._write()
+        self._write(bug)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
     def list(self, is_open=True, owner='*', grep='', alpha=False, chrono=False, truncate=0):
         """Lists all bugs, applying the given filters"""
+        if not os.path.exists(self.bugsdir):
+            raise exceptions.NotInitialized('No bugs directory found - use `init` command first')
+
         bugs = dict(self.bugs.items())
 
         prefixes = helpers.prefixes(bugs).items()
@@ -524,7 +449,7 @@ class Tracker:
 
         filtered = [bug for bug in bugs.values()
                     if bug['open'] == is_open
-                    and (owner == '*' or owner == bug['owner'])
+                    and (owner == '*' or owner == bug.get('owner'))
                     and (grep == '' or grep.lower() in bug['title'].lower())]
 
         if len(filtered) > 0:
@@ -553,7 +478,7 @@ class Tracker:
         migrations.details_to_markdown(self.bugsdir)
         migrations.details_to_yaml(self.bugsdir)
         migrations.move_details_to_bugs_root(self.bugsdir)
-        # migrations.bug_dict_into_yaml_details(self.bugs_filename, self.bugsdir)
+        migrations.bug_dict_into_yaml_details(self.bugsdir)
 
 
 

@@ -1,3 +1,7 @@
+title: redesign bugs directory
+open: false
+owner: jared
+entered: '2023-05-24T14:33:01.322077-05:00'
 type: Feature
 what: |-
   Change the bugs directory from containing a "details" directory to using

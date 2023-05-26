@@ -16,8 +16,8 @@ import re
 import shutil
 import logging
 from glob import glob
+from datetime import datetime
 
-from rich import print
 import yaml
 
 
@@ -48,6 +48,7 @@ def details_to_markdown(bugsdir: str):
         logging.debug('Writing contents to new file: %s', md_path)
         with open(md_path, 'w') as handle:
             handle.write(contents)
+
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -105,6 +106,7 @@ def details_to_yaml(bugsdir: str):
         os.remove(md_path)
 
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 def move_details_to_bugs_root(bugsdir: str):
     """Relocate the details files from the "details" subdirectory into the root of the .bugs folder."""
@@ -115,8 +117,77 @@ def move_details_to_bugs_root(bugsdir: str):
             logging.debug('Moving %s from %s to %s', filename, source, bugsdir)
             shutil.move(os.path.join(source, filename), bugsdir)
 
-    logging.debug('Removing "details" directory.')
-    os.rmdir(source)
+        logging.debug('Removing "details" directory.')
+        os.rmdir(source)
+
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def bug_dict_into_yaml_details(bugsdir: str):
+    """Migrate the details from the dugs dictionary file into the individual bugs YAML files."""
+    logging.info('Migrating details from bugs dictionary into individual YAML files.')
+    bugs_filename = os.path.join(bugsdir, 'bugs')
+    if not os.path.exists(bugs_filename):
+        logging.debug('No bugs dictionary file found, nothing to do.')
+        return
+
+    # Read out bug info from dictionary file.
+    with open(bugs_filename, 'r') as handle:
+        lines = handle.readlines()
+    bugs = []
+    for line in lines:
+        meta = {}
+        if '|' in line:
+            title, other = line.rsplit('|', 1)
+            meta['title'] = title.strip()
+            for piece in other.strip().split(','):
+                label, data = piece.split(':', 1)
+                meta[label.strip()] = data.strip()
+        else:
+            meta['title'] = line.strip()
+        bugs.append(meta)
+    logging.debug('Found %d bugs in the dictionary.', len(bugs))
+
+    # Handling for multiline strings.
+    def str_presenter(dumper, data):
+        if len(data.splitlines()) > 1:  # check for multiline string
+            return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+    yaml.representer.SafeRepresenter.add_representer(str, str_presenter)
+
+    # Write bugs into YAML files.
+    for bug in bugs:
+        # The YAML filename contains the ID, lets not duplicate it inside the file.
+        id = bug['id']
+        del bug['id']
+
+        # Make the open attribute boolean
+        bug['open'] = bug['open'].lower() == 'true'
+
+        # Switch from timestamp to entered date.
+        if 'time' in bug:
+            bug['entered'] = datetime.fromtimestamp(float(bug['time'])).astimezone().isoformat()
+            del bug['time']
+
+        # Remove the owner if not assigned.
+        if 'owner' in bug and not bug['owner']:
+            del bug['owner']
+
+        # Merge with existing, if details YAML exists.
+        yaml_file = os.path.join(bugsdir, id + '.bug.yaml')
+        if os.path.exists(yaml_file):
+            logging.debug('Updating %s with data from dictionary.', yaml_file)
+            with open(yaml_file, 'r') as handle:
+                bug.update(yaml.safe_load(handle))
+        else:
+            logging.debug('Creating new YAML file for bug %s', id)
+
+        # Write aggregated output to YAML file.
+        with open(yaml_file, 'w') as handle:
+            yaml.safe_dump(bug, handle, sort_keys=False)
+
+    logging.debug('Merge complete - removing now obsolete dictionary file.')
+    os.remove(bugs_filename)
 
 
 

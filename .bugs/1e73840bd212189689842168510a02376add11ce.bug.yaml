@@ -1,3 +1,7 @@
+title: recursively search for bugs directory
+open: false
+owner: jared
+entered: '2023-05-24T08:42:47.585084-05:00'
 type: Bug
 details: |-
   Recursively search up from the current folder to find the .bugs directory

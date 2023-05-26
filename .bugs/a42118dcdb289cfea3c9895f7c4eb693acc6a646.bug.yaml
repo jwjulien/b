@@ -1,3 +1,7 @@
+title: support tagging bugs
+open: false
+owner: jared <jaredjulien@exsystems.net>
+entered: '2023-05-20T13:40:30.399802-05:00'
 type: Feature
 what: Consider adding support for a [tags] section in a bugs details.
 why: |-

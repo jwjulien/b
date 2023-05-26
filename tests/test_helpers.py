@@ -36,13 +36,6 @@ from bugs import Bugs
 # ======================================================================================================================
 # Tests
 # ----------------------------------------------------------------------------------------------------------------------
-@pytest.mark.parametrize('value', [None, 1310458238.24])
-def test_datetime(value):
-    """Tests format datatime method, specifically some edge cases."""
-    helpers.formatted_datetime(value)
-
-
-# ----------------------------------------------------------------------------------------------------------------------
 def test_make_id():
     """Verify that the hash generation method does something."""
     helpers.make_id("test")

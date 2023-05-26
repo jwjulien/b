@@ -22,16 +22,6 @@ from typing import List
 # ======================================================================================================================
 # Helpers
 # ----------------------------------------------------------------------------------------------------------------------
-def formatted_datetime(timestamp=None):
-    """Returns a formatted string of the time from a timestamp, or now if called with no arguments."""
-    if timestamp:
-        t = datetime.fromtimestamp(float(timestamp))
-    else:
-        t = datetime.now()
-    return t.strftime("%A, %B %d, %Y at %I:%M %p")
-
-
-# ----------------------------------------------------------------------------------------------------------------------
 def make_id(existing: List[str] = None):
     """Return a hash of the given text for use as an id.
 
@@ -91,7 +81,7 @@ def prefixes(elements):
 
 # ----------------------------------------------------------------------------------------------------------------------
 def describe_print(num, is_open, owner, filter_by):
-    """Helper function used by list to describe the data just displayed """
+    """Helper function used by list to describe the data just displayed."""
     type_name = 'open' if is_open else 'resolved'
     out = "Found %s %s bug%s" % (num, type_name, '' if num == 1 else 's')
     if owner != '*':
