@@ -1,10 +1,11 @@
 title: add color support
 open: false
-owner: jared <jaredjulien@exsystems.net>
+author: jared <jaredjulien@exsystems.net>
 entered: '2023-05-20T17:32:56.183824-05:00'
+owner: jared <jaredjulien@exsystems.net>
 type: Feature
 what: Add support for colored output back to the terminal.
-why: Would make it easier to denot prefixes and to show open vs. closed bugs.
+why: Would make it easier to denote prefixes and to show open vs. closed bugs.
 how: |-
   Suggested color scheme:
 

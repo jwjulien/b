@@ -1,9 +1,11 @@
 title: add comments to comment section rather than EOF
 open: false
-owner: jared <jaredjulien@exsystems.net>
+author: jared <jaredjulien@exsystems.net>
 entered: '2023-04-20T11:13:43.507998-05:00'
+owner: jared <jaredjulien@exsystems.net>
 type: Bug
-paths: b.bugs
+paths:
+- b.bugs
 details: |-
   It would be nice if the tool was smart enough that the comments section
   didn't have to be at the end of the file.
@@ -11,8 +13,8 @@ expected: Comments could be added to the middle of the file.
 actual: |-
   Comments are always appended to the end of the file, no matter what
   section that is.
-reproduce: |-
-  1. Create a bug and launch the editor.
-  2. Append a new section called "[test]" to the end of the bug detail file.
-  3. Use the comment command to add a new comment.
-  4. Observe that the new comment has been added to the "test" section.
+reproduce:
+- 1. Create a bug and launch the editor.
+- 2. Append a new section called "[test]" to the end of the bug detail file.
+- 3. Use the comment command to add a new comment.
+- 4. Observe that the new comment has been added to the "test" section.

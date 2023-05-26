@@ -1,7 +1,8 @@
 title: add init method
 open: false
-owner: jared
+author: jared <jaredjulien@exsystems.net>
 entered: '2023-05-24T08:38:03.819403-05:00'
+owner: jared <jaredjulien@exsystems.net>
 type: Bug
 reporter: Jared
 details: |-
@@ -12,10 +13,8 @@ details: |-
 
   That also means that commands like `add` should fail when `init` has yet to be
   run in a project.
-reproduce: |-
-  From an empty folder run:
-
-      b add "new bug"
+reproduce:
+- From an empty folder run `b add "new bug"`.
 expected: Should get an error saying no .bugs directory was found.
 actual: |-
   The tool just creates the .bugs directory and adds a new bug.

@@ -1,9 +1,11 @@
 title: revamp settings with get/set
 open: false
-owner: jared <jaredjulien@exsystems.net>
+author: jared <jaredjulien@exsystems.net>
 entered: '2023-05-20T13:10:36.372610-05:00'
+owner: jared <jaredjulien@exsystems.net>
 type: Feature
-paths: b.command
+paths:
+- b.command
 what: |-
   Rework the settings to add more capabilities and distance from being tied
   to Mercurial.

@@ -1,8 +1,9 @@
 title: remove Mercurial support
 open: false
-owner: jared <jaredjulien@exsystems.net>
+author: jared <jaredjulien@exsystems.net>
 entered: '2023-05-20T17:35:56.327206-05:00'
-type: Bug
+owner: jared <jaredjulien@exsystems.net>
+type: Task
 details: |-
   At this point there isn't much need for Mercurial integration.  B works
   great as a standalone command line tool and can be used with any version

@@ -1,14 +1,15 @@
 title: templates command fails out of root
 open: true
-owner: jared
+author: jared <jaredjulien@exsystems.net>
 entered: '2023-05-24T15:19:07.993390-05:00'
+owner: jared <jaredjulien@exsystems.net>
 type: Bug
 details: Issuing the `templates` command outside of the root directory (containing
   .bugs) causes the template to not be found.
-reproduce: |-
-  1. cd into a subdirectory of an initialized project.
-  2. Run `b templates`.
-  3. Observe that no templates are listed.
+reproduce:
+- 1. cd into a subdirectory of an initialized project.
+- 2. Run `b templates`.
+- 3. Observe that no templates are listed.
 expected: A list of, at least, default templates for the project.
 actual: No templates are listed.
 problem: B is assuming relative directories when searching for templates.

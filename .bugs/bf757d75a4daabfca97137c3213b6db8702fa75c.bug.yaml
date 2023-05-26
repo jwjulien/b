@@ -1,21 +1,23 @@
 title: new comments at EOF fail
 open: false
-owner: jared
+author: jared <jaredjulien@exsystems.net>
 entered: '2023-05-21T15:56:57.683401-05:00'
+owner: jared <jaredjulien@exsystems.net>
 type: Bug
 reporter: jared
 details: |-
   When I try to add the first comment to the end of the file with an
   empty comments section it fails.
-reproduce: |-
-  1. Create a new bug.
-  2. Edit the details file for the new bug to clean out the comments section entirely.
-  3. Attempt to add a new comment to the bug.
-  4. Observe no error at the command line.
-  5. Edit the bug's details file again and observe that the comment has not been added.
+reproduce:
+- 1. Create a new bug.
+- 2. Edit the details file for the new bug to clean out the comments section entirely.
+- 3. Attempt to add a new comment to the bug.
+- 4. Observe no error at the command line.
+- 5. Edit the bug's details file again and observe that the comment has not been added.
 expected: Would expect the comment to appear in the details file or an error message.
 actual: No error, just doesn't do anything.
-paths: b.dict
+paths:
+- b.dict
 fix: |-
   Two pronged:
 

@@ -1,7 +1,8 @@
 title: support tagging bugs
 open: false
-owner: jared <jaredjulien@exsystems.net>
+author: jared <jaredjulien@exsystems.net>
 entered: '2023-05-20T13:40:30.399802-05:00'
+owner: jared <jaredjulien@exsystems.net>
 type: Feature
 what: Consider adding support for a [tags] section in a bugs details.
 why: |-
@@ -15,6 +16,6 @@ how: |-
 decision: |-
   Request denied.
 
-  Not a required feature.  May recondier in the future, but it's not a feature that I
-  need right now and I would prefer to preseve some simplicity for this tool while I
+  Not a required feature.  May reconsider in the future, but it's not a feature that I
+  need right now and I would prefer to preserve some simplicity for this tool while I
   continue to bloat it out with other features.
