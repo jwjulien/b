@@ -65,16 +65,29 @@ class Tracker:
         bugsdir = os.path.expanduser(bugsdir)
         self.bugsdir = bugsdir if os.path.isabs(os.path.expanduser(bugsdir)) else climb_tree(bugsdir)
 
-        # TODO: Don't load all bugs by default.  Load them on demand to be more resource efficient.
-        # If the bugs directory exists, then load the existing bugs.
-        self.bugs: Dict[str, Dict[str, any]] = {}
-        if os.path.exists(self.bugsdir):
-            for filename in glob(os.path.join(self.bugsdir, '*.bug.yaml')):
-                id = os.path.basename(filename).split('.', 1)[0]
-                with open(filename, 'r') as handle:
-                    data = yaml.safe_load(handle)
-                data['id'] = id
-                self.bugs[id] = data
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def _get_bug(self, prefix: str) -> Dict[str, any]:
+        ids = self._list_ids()
+        matched = [id for id in ids if id.startswith(prefix)]
+        if len(matched) == 1:
+            id = matched[0]
+            with open(self._get_bug_path(id), 'r') as handle:
+                data = yaml.safe_load(handle)
+            data['id'] = id
+            return data
+
+        elif len(matched) == 0:
+            raise exceptions.UnknownPrefix(prefix)
+
+        else:
+            # More than one match.
+            raise exceptions.AmbiguousPrefix(prefix)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def _all_bugs(self) -> List[Dict[str, any]]:
+        return [self._get_bug(id) for id in self._list_ids()]
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -89,13 +102,96 @@ class Tracker:
             return dumper.represent_scalar('tag:yaml.org,2002:str', data)
         yaml.representer.SafeRepresenter.add_representer(str, str_presenter)
 
-        filename = self._get_details_path(bug['id'])
+        filename = self._get_bug_path(bug['id'])
         bug = dict(bug)
         del bug['id']
         with open(filename, 'w') as handle:
             # TODO: What about sorting the keys in our desired order here?
             # TODO: We should probably warn when the bug violates the schema too.
             yaml.safe_dump(bug, handle, sort_keys=False)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def _get_bug_path(self, full_id):
+        """Returns the directory and file path to the details specified by id."""
+        return os.path.join(self.bugsdir, full_id + ".bug.yaml")
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def _list_ids(self) -> List[str]:
+        return [file.split('.', 1)[0] for file in os.listdir(self.bugsdir) if file.endswith('.bug.yaml')]
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def _prefixes(self) -> Dict[str, str]:
+        prefixes = {}
+        ids = self._list_ids()
+        for id in ids:
+            for idx in range(1, len(id)):
+                prefix = id[:idx]
+                matches = [id for id in ids if id.startswith(prefix)]
+                if len(matches) == 1:
+                    prefixes[id] = prefix
+                    break
+        return prefixes
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def _users_list(self):
+        """Returns a mapping of usernames to the number of open bugs assigned to that user."""
+        counts = {}
+        for bug in self._all_bugs():
+            owner = bug.get('owner')
+            if owner not in counts:
+                counts[owner] = 0
+            if bug['open']:
+                counts[owner] += 1
+        return dict(sorted(list(counts.items()), key=lambda count: count[1], reverse=True))
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def _get_user(self, user, force=False):
+        """Given a user prefix, returns the appropriate username, or fails if the correct user cannot be identified.
+
+        'me' is a special username which maps to the username specified when constructing the Bugs.  'Nobody' (and
+        prefixes of 'Nobody') is a special username which maps internally to the empty string, indicating no assignment.
+        If force is true, the user 'Nobody' is used.  This is unadvisable, avoid forcing the username 'Nobody'.
+
+        If force is true, it assumes user is not a prefix and should be assumed to exist already.
+        """
+        if user.lower() == 'me':
+            return self.user
+
+        if user.lower() == 'nobody':
+            return None
+
+        users = self._users_list().keys()
+        if not force:
+            if user not in users:
+                usr = user.lower()
+                matched = [u for u in users if u and u.lower().startswith(usr)]
+                if len(matched) > 1:
+                    raise exceptions.AmbiguousUser(user, matched)
+                if len(matched) == 0:
+                    raise exceptions.UnknownUser(user)
+                user = matched[0]
+            # Needed twice, since users can also type a prefix of "Nobody"
+            if user == 'Nobody':
+                return ''
+        else:  # we're forcing a new username
+            if '|' in user:
+                raise exceptions.InvalidInput("Usernames cannot contain '|'.")
+        return user
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def _launch_editor(self, path: str) -> None:
+        """Open the specified file in the editor specified by the user.
+
+        Arguments:
+            path: The path to the file to be edited.
+        """
+        subprocess.call("%s \"%s\"" % (self.editor, path), shell=True)
 
 
 
@@ -188,108 +284,9 @@ class Tracker:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def __getitem__(self, prefix):
-        """Return the bug with the given prefix.
-
-        If more than one bug matches the prefix an AmbiguousPrefix exception will be raised, unless the prefix is the
-        entire ID of one bug.
-
-        If no tasks match the prefix an UnknownPrefix exception will be raised.
-        """
-        matched = [item for item in self.bugs.keys() if item.startswith(prefix)]
-        if len(matched) == 1:
-            return self.bugs[matched[0]]
-        elif len(matched) == 0:
-            raise exceptions.UnknownPrefix(prefix)
-        else:
-            matched = [item for item in self.bugs.keys() if item == prefix]
-            if len(matched) == 1:
-                return self.bugs[matched[0]]
-            else:
-                raise exceptions.AmbiguousPrefix(prefix)
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-    def _get_details_path(self, full_id):
-        """Returns the directory and file path to the details specified by id."""
-        return os.path.join(self.bugsdir, full_id + ".bug.yaml")
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-    def _list_ids(self) -> List[str]:
-        return [file.split('.', 1)[0] for file in os.listdir(self.bugsdir) if file.endswith('.bug.yaml')]
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-    def _prefixes(self) -> Dict[str, str]:
-        prefixes = {}
-        ids = self._list_ids()
-        for id in ids:
-            for idx in range(1, len(id)):
-                prefix = id[:idx]
-                matches = [id for id in ids if id.startswith(prefix)]
-                if len(matches) == 1:
-                    prefixes[id] = prefix
-                    break
-        return prefixes
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-    def _users_list(self):
-        """Returns a mapping of usernames to the number of open bugs assigned to that user."""
-        open_owners = [bug.get('owner') for bug in self.bugs.values() if bug['open']]
-        closed_owners = [bug.get('owner') for bug in self.bugs.values() if not bug['open']]
-        owners = set(open_owners + closed_owners)
-        print(owners)
-        counts = {}
-        for bug in self.bugs.values():
-            owner = bug.get('owner')
-            if owner not in counts:
-                counts[owner] = 0
-            if bug['open']:
-                counts[owner] += 1
-        print(list(counts.items()))
-        counts = dict(sorted(list(counts.items()), key=lambda count: count[1], reverse=True))
-        return counts
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-    def _get_user(self, user, force=False):
-        """Given a user prefix, returns the appropriate username, or fails if the correct user cannot be identified.
-
-        'me' is a special username which maps to the username specified when constructing the Bugs.  'Nobody' (and
-        prefixes of 'Nobody') is a special username which maps internally to the empty string, indicating no assignment.
-        If force is true, the user 'Nobody' is used.  This is unadvisable, avoid forcing the username 'Nobody'.
-
-        If force is true, it assumes user is not a prefix and should be assumed to exist already.
-        """
-        if user == 'me':
-            return self.user
-        if user == 'Nobody':
-            return ''
-        users = self._users_list().keys()
-        if not force:
-            if user not in users:
-                usr = user.lower()
-                matched = [u for u in users if u and u.lower().startswith(usr)]
-                if len(matched) > 1:
-                    raise exceptions.AmbiguousUser(user, matched)
-                if len(matched) == 0:
-                    raise exceptions.UnknownUser(user)
-                user = matched[0]
-            # Needed twice, since users can also type a prefix of "Nobody"
-            if user == 'Nobody':
-                return ''
-        else:  # we're forcing a new username
-            if '|' in user:
-                raise exceptions.InvalidInput("Usernames cannot contain '|'.")
-        return user
-
-
-# ----------------------------------------------------------------------------------------------------------------------
     def id(self, prefix):
         """Given a prefix, returns the full id of that bug."""
-        print(self[prefix].id)
+        print(self._get_bug(prefix)['id'])
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -339,7 +336,7 @@ class Tracker:
 
         If no tasks match the prefix an UnknownPrefix exception will be raised.
         """
-        bug = self[prefix]
+        bug = self._get_bug(prefix)
         if title.startswith('s/') or title.startswith('/'):
             title = re.sub('^s?/', '', title).rstrip('/')
             find, _, repl = title.partition('/')
@@ -366,15 +363,19 @@ class Tracker:
 
         Using the -f flag will create a new user with that exact name, it will not try to guess, or warn the user.
         """
-        bug = self[prefix]
+        bug = self._get_bug(prefix)
         user = self._get_user(user, force)
-        bug['owner'] = user
 
-        if user == '':
-            user = 'Nobody'
+        if user is None:
+            if 'owner' in bug:
+                del bug['owner']
+            print(f"Unassigned {prefix}: '{bug['title']}'")
+
+        else:
+            bug['owner'] = user
+            print(f"Assigned {prefix}: '{bug['title']}' to {user}")
 
         self._write(bug)
-        print(f"Assigned {prefix}: '{bug['title']}' to {user}")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -386,7 +387,7 @@ class Tracker:
 
         Sections with no content are not displayed.
         """
-        bug = self[prefix]  # confirms prefix does exist
+        bug = self._get_bug(prefix)
         print(f"Title: [{'red' if bug['open'] else 'green'}]{bug['title']}")
         print(f"ID: [bold cyan]{prefix}[/]:[yellow]{bug['id'][len(prefix):]}")
         print(f"Status: [{'red' if bug['open'] else 'green'}]{'Open' if bug['open'] else 'Resolved'}")
@@ -403,19 +404,9 @@ class Tracker:
 # ----------------------------------------------------------------------------------------------------------------------
     def edit(self, prefix):
         """Allows the user to edit the details of the specified bug"""
-        bug = self[prefix]  # confirms prefix does exist
-        path = self._get_details_path(bug['id'])
+        bug = self._get_bug(prefix)
+        path = self._get_bug_path(bug['id'])
         self._launch_editor(path)
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-    def _launch_editor(self, path: str) -> None:
-        """Open the specified file in the editor specified by the user.
-
-        Arguments:
-            path: The path to the file to be edited.
-        """
-        subprocess.call("%s \"%s\"" % (self.editor, path), shell=True)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -423,7 +414,7 @@ class Tracker:
         """Allows the user to add a comment to the bug without launching an editor.
 
         If they have a username set, the comment will show who made it."""
-        bug = self[prefix]  # confirms prefix does exist
+        bug = self._get_bug(prefix)
 
         # Add a new comments section to the bug if it doesn't already exist.
         if 'comments' not in bug:
@@ -443,7 +434,7 @@ class Tracker:
 # ----------------------------------------------------------------------------------------------------------------------
     def resolve(self, prefix):
         """Marks a bug as resolved"""
-        bug = self[prefix]
+        bug = self._get_bug(prefix)
         bug['open'] = False
         self._write(bug)
 
@@ -451,7 +442,7 @@ class Tracker:
 # ----------------------------------------------------------------------------------------------------------------------
     def reopen(self, prefix):
         """Reopens a bug that was previously resolved"""
-        bug = self[prefix]
+        bug = self._get_bug(prefix)
         bug['open'] = True
         self._write(bug)
 
@@ -462,14 +453,12 @@ class Tracker:
         if not os.path.exists(self.bugsdir):
             raise exceptions.NotInitialized('No bugs directory found - use `init` command first')
 
-        bugs = dict(self.bugs.items())
-
         prefixes = self._prefixes()
 
         if owner != '*':
             owner = self._get_user(owner)
 
-        filtered = [bug for bug in bugs.values()
+        filtered = [bug for bug in self._all_bugs()
                     if bug['open'] == is_open
                     and (owner == '*' or owner == bug.get('owner'))
                     and (grep == '' or grep.lower() in bug['title'].lower())]
