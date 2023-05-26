@@ -16,14 +16,16 @@ import re
 from glob import glob
 import shutil
 import subprocess
+import hashlib
+import time
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List
 
 import yaml
 from rich import print
 from rich.console import Console
 
-from b import exceptions, helpers, migrations
+from b import exceptions, migrations
 
 
 
@@ -214,19 +216,14 @@ class Tracker:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def _prefixes(self):
-        """Return a mapping of elements to their unique prefix in O(n) time.
+    def _list_ids(self) -> List[str]:
+        return [file.split('.', 1)[0] for file in os.listdir(self.bugsdir) if file.endswith('.bug.yaml')]
 
-        This is much faster than the native t function, which takes O(n^2) time.
 
-        Each prefix will be the shortest possible substring of the element that
-        can uniquely identify it among the given group of elements.
-
-        If an element is entirely a substring of another, the whole string will be
-        the prefix.
-        """
+# ----------------------------------------------------------------------------------------------------------------------
+    def _prefixes(self) -> Dict[str, str]:
         prefixes = {}
-        ids = [file.split('.', 1)[0] for file in os.listdir(self.bugsdir) if file.endswith('.bug.yaml')]
+        ids = self._list_ids()
         for id in ids:
             for idx in range(1, len(id)):
                 prefix = id[:idx]
@@ -234,7 +231,6 @@ class Tracker:
                 if len(matches) == 1:
                     prefixes[id] = prefix
                     break
-
         return prefixes
 
 
@@ -311,7 +307,12 @@ class Tracker:
         with open(template_path, 'r') as handle:
             bug = yaml.safe_load(handle)
 
-        full_id = helpers.make_id(self.bugs.keys())
+        # Generate a unique hash for a new ID.
+        existing = self._list_ids()
+        while True:
+            full_id = hashlib.sha1(str(time.time()).encode('utf-8')).hexdigest()
+            if full_id not in existing:
+                break
 
         # Populate default attributes.
         bug['id'] = full_id
@@ -490,7 +491,14 @@ class Tracker:
                 line = line[:truncate - 4] + '...'
             print(line)
 
-        print(helpers.describe_print(len(filtered), is_open, owner, grep))
+        out = f"Found {len(filtered)} "
+        out += 'open' if is_open else 'resolved'
+        out += f" bug{'' if len(filtered) == 1 else 's'}"
+        if owner != '*':
+            out += f" owned by {'Nobody' if owner == '' else owner}"
+        if grep:
+            out += f' whose title contains {grep}'
+        print(out)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
