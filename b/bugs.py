@@ -13,7 +13,6 @@
 # ----------------------------------------------------------------------------------------------------------------------
 import os
 import re
-from glob import glob
 import shutil
 import subprocess
 import hashlib
@@ -23,7 +22,9 @@ from typing import Dict, List
 
 import yaml
 from rich import print
-from rich.console import Console
+from rich.console import group
+from rich.panel import Panel
+from rich.table import Table
 
 from b import exceptions, migrations
 
@@ -425,16 +426,40 @@ class Tracker:
         Sections with no content are not displayed.
         """
         bug = self._get_bug(prefix)
-        print(f"Title: [{'red' if bug['open'] else 'green'}]{bug['title']}")
-        print(f"ID: [bold cyan]{prefix}[/]:[yellow]{bug['id'][len(prefix):]}")
-        print(f"Status: [{'red' if bug['open'] else 'green'}]{'Open' if bug['open'] else 'Resolved'}")
-        if bug.get('owner'):
-            print(f"Owned by: [magenta]{bug['owner']}[/]")
 
-        Console().print(f"Filed on: {bug['entered']}", highlight=False)
+        is_open = bug.pop('open', True)
+        type = bug.pop('type', 'Bug')
+        color = 'red' if is_open else 'green'
+        title = f"[{color}]{type}: {bug.pop('title')}[/]"
 
-        # TODO: Print comments.
-        # TODO: Print arbitrary remaining sections.
+        @group()
+        def chunks():
+            id = bug.pop('id')
+            yield f"Status: [{color}]{'Open' if is_open else 'Resolved'}"
+            yield f"ID: [bold cyan]{prefix}[/]:[yellow]{id[len(prefix):]}"
+            yield f"Entered on: {bug.pop('entered', '*unknown*')} by {bug.pop('author', '*unknown*')}"
+
+            if 'owner' in bug:
+                yield f"Owned by: [magenta]{bug.pop('owner')}"
+
+            comments = bug.pop('comments', [])
+
+            for key, value in bug.items():
+                if isinstance(value, list):
+                    value = '\n'.join(value)
+                yield Panel(value, title=key.title())
+
+            if comments:
+                table = Table(title='Comments')
+                table.add_column('Date')
+                table.add_column('User')
+                table.add_column('Text')
+
+                for comment in comments:
+                    table.add_row(str(comment['date']), comment['author'], comment['text'].strip())
+                yield table
+
+        print(Panel.fit(chunks(), title=title, title_align='left'))
 
 
 # ----------------------------------------------------------------------------------------------------------------------
