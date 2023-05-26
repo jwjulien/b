@@ -222,9 +222,8 @@ class Tracker:
 # ----------------------------------------------------------------------------------------------------------------------
     def _get_details_path(self, full_id):
         """Returns the directory and file path to the details specified by id."""
-        dirpath = os.path.join(self.bugsdir, 'details')
-        path = os.path.join(dirpath, full_id + ".bug.yaml")
-        return dirpath, path
+        path = os.path.join(self.bugsdir, full_id + ".bug.yaml")
+        return path
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -235,9 +234,7 @@ class Tracker:
             template = 'bug'
 
         # Generate the directory path for detail files if it doesn't exist.
-        (dirpath, path) = self._get_details_path(full_id)
-        if not os.path.exists(dirpath):
-            os.makedirs(dirpath, exist_ok=True)
+        path = self._get_details_path(full_id)
 
         # Add the new detail file from template.
         templates = self.list_templates()
@@ -405,7 +402,7 @@ class Tracker:
 
         Console().print(f"Filed on: {helpers.formatted_datetime(bug['entered'])}", highlight=False)
 
-        path = self._get_details_path(bug['id'])[1]
+        path = self._get_details_path(bug['id'])
         if os.path.exists(path):
             with open(path) as f:
                 details = f.read()
@@ -440,7 +437,7 @@ class Tracker:
     def edit(self, prefix, template):
         """Allows the user to edit the details of the specified bug"""
         bug = self[prefix]  # confirms prefix does exist
-        path = self._get_details_path(bug['id'])[1]
+        path = self._get_details_path(bug['id'])
         if not os.path.exists(path):
             self._make_details_file(bug['id'], template)
         self._launch_editor(path)
@@ -462,7 +459,7 @@ class Tracker:
 
         If they have a username set, the comment will show who made it."""
         bug = self[prefix]  # confirms prefix does exist
-        path = self._get_details_path(bug['id'])[1]
+        path = self._get_details_path(bug['id'])
         if not os.path.exists(path):
             self._make_details_file(bug['id'], template)
 
@@ -555,7 +552,7 @@ class Tracker:
         """Migrate the current bugs directory to the latest version."""
         migrations.details_to_markdown(self.bugsdir)
         migrations.details_to_yaml(self.bugsdir)
-        # migrations.move_details_to_bugs_root(self.bugsdir)
+        migrations.move_details_to_bugs_root(self.bugsdir)
         # migrations.bug_dict_into_yaml_details(self.bugs_filename, self.bugsdir)
 
 

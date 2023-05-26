@@ -13,6 +13,7 @@
 # ----------------------------------------------------------------------------------------------------------------------
 import os
 import re
+import shutil
 import logging
 from glob import glob
 
@@ -102,6 +103,20 @@ def details_to_yaml(bugsdir: str):
         # Remove the original .md file.
         logging.debug('Deleting original .md file: %s', md_path)
         os.remove(md_path)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def move_details_to_bugs_root(bugsdir: str):
+    """Relocate the details files from the "details" subdirectory into the root of the .bugs folder."""
+    logging.info('Migrating details into .bugs root directory.')
+    source = os.path.join(bugsdir, 'details')
+    if os.path.exists(source):
+        for filename in os.listdir(source):
+            logging.debug('Moving %s from %s to %s', filename, source, bugsdir)
+            shutil.move(os.path.join(source, filename), bugsdir)
+
+    logging.debug('Removing "details" directory.')
+    os.rmdir(source)
 
 
 
