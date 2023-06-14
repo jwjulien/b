@@ -271,9 +271,9 @@ class Tracker:
                 name = template.rsplit('.', 2)[0]
                 templates[name] = path
 
-        # Start with a list of templates from the template folder within the `b` package.
+        # Start with a list of templates from the template folder within this `b` package.
         if not only_custom:
-            add_templates('b')
+            add_templates(os.path.dirname(__file__))
 
         # Include/override with templates from the project directory when specified.
         if not only_defaults:
@@ -311,7 +311,7 @@ class Tracker:
         available = self.list_templates(only_custom=True)
         if template not in available:
             message = f'Custom template {template} does not exit.'
-            message += '\nDid you mean to `create` (-c) instead of `edit` (-e)?'
+            message += '\nPerhaps you meant to create a custom template (-c) instead?'
             raise exceptions.InvalidInput(message)
         path = available[template]
         self._launch_editor(path)

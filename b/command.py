@@ -347,7 +347,10 @@ def run():
                     print(f"Available {'default ' if args.defaults else ''}bug templates:")
                     templates = tracker.list_templates(only_defaults=args.defaults)
                     for name in sorted(templates.keys()):
-                        print(f'- {name} ({templates[name]})')
+                        base = os.path.relpath(os.path.dirname(templates[name]), os.path.dirname(tracker.bugsdir))
+                        filename = os.path.basename(templates[name])
+                        sep = os.path.sep.replace('\\', '\\\\')
+                        print(f'- [green]{name}[/] ([italic]{base}{sep}[yellow]{filename}[/])')
 
             elif args.command == 'config':
                 if args.unset:

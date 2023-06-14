@@ -1,9 +1,9 @@
 title: templates command fails out of root
-open: true
+type: Bug
+open: false
 author: jared <jaredjulien@exsystems.net>
 entered: '2023-05-24T15:19:07.993390-05:00'
 owner: jared <jaredjulien@exsystems.net>
-type: Bug
 details: Issuing the `templates` command outside of the root directory (containing
   .bugs) causes the template to not be found.
 reproduce:
