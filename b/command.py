@@ -71,8 +71,9 @@ def _add_arg_text(parser, help):
 # Command Line Processing
 # ----------------------------------------------------------------------------------------------------------------------
 def run():
-    description = metadata.metadata('b')['Summary']
-    version = metadata.version('b')
+    name = 'b-bugtracker'
+    description = metadata.metadata(name)['Summary']
+    version = metadata.version(name)
     parser = ArgumentParser(description=description, formatter_class=RichHelpFormatter)
 
     parser.add_argument(
