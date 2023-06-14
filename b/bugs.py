@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import hashlib
 import time
+import logging
 from datetime import datetime
 from typing import Dict, List
 
@@ -103,13 +104,45 @@ class Tracker:
             return dumper.represent_scalar('tag:yaml.org,2002:str', data)
         yaml.representer.SafeRepresenter.add_representer(str, str_presenter)
 
+        # Start with a list of keys from the schema sorted in our preferred order.
+        keys = [
+            'title',
+            'type',
+            'open',
+            'author',
+            'entered',
+            'owner',
+            'details',
+            'paths',
+            'comments',
+            'reproduce',
+            'expected',
+            'actual',
+            'stacktrace',
+            'environment',
+            'fix',
+            'what',
+            'why',
+            'how',
+            'accepted'
+        ]
+
+        # Add any additional keys into the list at the end and warn users about schema violations too.
+        for key in bug.keys():
+            if key ==  'id':
+                continue
+            if key not in keys:
+                logging.warning('Bug contains key "%s" which is not part of the schema.  Retaining.', key)
+                keys.append(key)
+
+        # Generate a new dict with values for the bug in the sorted order of keys.
+        # In newer Python, the dicts are automatically OrderedDict's.
+        sorted = dict((key, bug.get(key)) for key in keys if key in bug)
+
+        # Finally, write the now sorted bug contents to disc.
         filename = self._get_bug_path(bug['id'])
-        bug = dict(bug)
-        del bug['id']
         with open(filename, 'w') as handle:
-            # TODO: What about sorting the keys in our desired order here?
-            # TODO: We should probably warn when the bug violates the schema too.
-            yaml.safe_dump(bug, handle, sort_keys=False)
+            yaml.safe_dump(sorted, handle, sort_keys=False)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -291,8 +324,15 @@ class Tracker:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def add(self, title, template):
-        """Adds a new bug to the list."""
+    def add(self, title: str, template: str, self_owner: bool):
+        """Adds a new bug to the list.
+
+        Arguments:
+            title: Title text giving a summarized description of this new bug.
+            template: Name of the template file (can be found using the `templates` command) to use for this new bug.
+            self_owner: True if the current user should be set at the owner for this new bug.  If False, then no owner
+                will be assigned.
+        """
         # Add the new detail file from template.
         templates = self.list_templates()
         try:
@@ -318,6 +358,9 @@ class Tracker:
         bug['entered'] = datetime.now().astimezone().isoformat()
         bug['author'] = self.user
         bug['open'] = True
+
+        if self_owner:
+            bug['owner'] = self.user
 
         self._write(bug)
 

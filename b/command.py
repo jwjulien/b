@@ -101,6 +101,13 @@ def run():
                                      formatter_class=RichHelpFormatter)
     _add_arg_text(parser_add, 'title text for the new bug')
     parser_add.add_argument(
+        '-s',
+        '--self',
+        action='store_true',
+        default=False,
+        help='assign self as owner of this new bug'
+    )
+    parser_add.add_argument(
         '-t',
         '--template',
         default='bug',
@@ -296,7 +303,7 @@ def run():
         try:
             # Handle the specified command.
             if args.command == 'add':
-                args.prefix = tracker.add(args.text, args.template)
+                args.prefix = tracker.add(args.text, args.template, args.self)
 
             elif args.command == 'init':
                 tracker.initialize(args.force)

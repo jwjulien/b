@@ -12,7 +12,7 @@ reproduce:
 - 3. Observe that no templates are listed.
 expected: A list of, at least, default templates for the project.
 actual: No templates are listed.
-problem: B is assuming relative directories when searching for templates.
+problem: B is assuming directories relative to the CWD when searching for templates.
 fix: |-
   Make template directory relative to the bugsdir that was configured.
 
