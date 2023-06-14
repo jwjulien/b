@@ -132,9 +132,13 @@
                         "type": "string",
                         "description": "Anything worth noting about your setup?  Hardware?  OS?  Versions?"
                     },
+                    "problem": {
+                        "type": "string",
+                        "description": "A summary of the thing that is leading to the actual behavior."
+                    },
                     "fix": {
                         "type": "string",
-                        "description": "What needs to be done to resolve this bug?"
+                        "description": "What needs to change to get to the expected behavior."
                     }
                 },
                 "required": [

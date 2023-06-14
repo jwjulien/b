@@ -120,6 +120,7 @@ class Tracker:
             'actual',
             'stacktrace',
             'environment',
+            'problem',
             'fix',
             'what',
             'why',
