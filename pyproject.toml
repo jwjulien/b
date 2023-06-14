@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "b-bugtracker"
-version = "2.1.0"
+version = "3.0.0"
 description = "A simple, distributed bug tracker."
 repository = "https://github.com/jwjulien/b"
 homepage = "https://jwjulien.github.io/b"
