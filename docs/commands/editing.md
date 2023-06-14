@@ -17,6 +17,22 @@ And you can confirm it's been added by calling:
 Which will show you your new bug, along with an ID to refer to it by.  These IDs are actually prefixes of the full bug ID and will get longer as more bugs are added.  See the `id` command for more info about IDs and prefixes.
 
 
+### Template
+A template can be specified when creating a new bug.  For example, to add a new bug using the built-in feature template:
+
+    $ b add -t feature "A new feature"
+
+To get a list of available templates or to configure new templates, see the [template command](templates) documentation.
+
+
+### Owner
+To make yourself the owner of the new task (and avoid the second step of using the `assign` command to assign to "me") use the `-s` or `--self` switch.
+
+
+### Edit
+If you want to open the new bug for editing, tack on the `-e` or `--edit` switch along with the add command.  This will save you the extra step of manually invoking the `edit` command after the add.
+
+
 
 
 Edit Command
