@@ -4,121 +4,32 @@ This version of `b` was forked from [foss.heptapod.net](https://foss.heptapod.ne
 
 So, with that stated, full credit for the inspiration for this tool goes to Michael Diamond.  Thank you for taking the time and investing the effort to create `b`, without which this tool I love wouldn't likely exist.
 
-The original purpose of B was to serve as a low-feature stand-in for a real, convoluted bug tracking system.  I loved that concept, but have taken the tool much further - much beyond the original, small scope to the point of adding special features to give this tool the abilities of a fully fledged bug tracking system, but in a distributed package.
+The original purpose of B was to serve as a low-feature stand-in for a real, convoluted bug tracking system.  I loved that concept, but have taken the tool much further; much beyond the original, modest scope to the point of adding many features and capabilities to rival those of a fully fledged bug tracking system, but still in a distributed package.
 
-- Support Python 3.x (mostly just adjustments to convert between byte strings and unicode strings).
-- Support invocation from the command line, outside of Mercurial, to allow use with other version control systems.
-- Support custom, per-project template used when creating new "details" files for bugs.
-- Support a set of semi-custom templates for new bugs that can be specified from the command line when created.
+- Now a standalone command-line tool with no dependency upon Mercurial allowing it to be used with any VCS.
+    - See [[docs/usage]] for help with the available commands.
+- Supports Rich output to make interacting a bit more friendly.
+- Supports bug templates to offer a better starting point for new bugs.
+    - Also supports customization at the project level - see [[docs/templates]] for more info.
+- Handles it's own configuration, outside of Mercurial, in support of independence.
+    - See [[docs/config]] for more info about the available configuration options and config file location.
+
+See the [[installation]] and [[docs/getting_started]] guides for help with installing and using `b` on your project.
 
 
 
-Introduction:
+
+Introduction
 ------------------------------------------------------------------------------------------------------------------------
-The original description of `b`, from Michael Diamond:
+`b` is a tool for tracking bugs and open issues that works with any distributed version control system.  Bugs are tracked as YAML files (i.e., nearly plain text) directly in the `.bugs` directory of the project.  That means that when a user adds a new bug they will need to add it into the VCS and commit it.  Then, all changes made to the bug during the process of diagnosis and resolution will be tracked.
 
-> Based off and built using Steve Losh's beautifully simple task manager [`t`](http://stevelosh.com/projects/t/) the fundamental principle is  'Get things done, not organized', and tries to follow `t`'s message, "the only way to make your bug list prettier is to fix some damn bugs."
->
-> That said, `b` has many powerful additions to `t`, without any of the bloat and burden of setting up, maintaining, or using a traditional bug tracker.
->
-> You can use `b` exactly like `t`, add, rename, resolve, and list work almost exactly like `t` out of the box, with the added benefit that wherever you are in a repository, you maintain a single bugs database in the root of the repository.
->
-> But you can do more with `b`.  You can reopen issues, the edit, details, and comment commands allow you to track additional information about the bugs, like stack traces and expected results, and whatever other information you'd like.  The details file is a plain text file, so you can include whatever content you'd like.
->
-> You can also assign bugs to specific individuals and list lets you filter by owner to see what tasks are in your care.
->
-> `b` is powerful enough to support several different workflow complexities, from an individual just tracking tasks in a repository, all the way up to a small, distributed team of managers and developers who need to be able to report, manage, and assign bugs, tasks, and issues, share details, and express their opinions.
->
-> However, `b` is not intended to be be a replacement for large scale bug trackers like Jira, Bugzilla, and the upcoming Bugs Everywhere.  Most notably, (at present) `b` is just a command line tool.  There is no centralized bug list or web access, nor any GUI interface, and many of the features in such larger projects are lacking, notably any kind of warning or notification when a bug is reassigned, and the ability to categorize bugs and to provide resolution reasons, like fixed or duplicate - of course these could all be done manually, but there is no such built in functionality.
->
-> If you need the power of a centralized issue tracker like Heptapod or GitHub provides, you're going to find `b` limited.  However if you find the extra "features" in these tools to be unhelpful bloat, and you don't want to waste time organizing, categorizing, and sorting and instead want a quick, easy way to track tasks with minimal setup and configuration, then `b` is the tool for you!
-
-I owe this a proper update at some point, but for now, suffice it to say that B is great, and Mercurial is amazing, however, the two have parted ways.  B will now work for any man and is simply a command line based tool, not a particular integration.
+The use of YAML files means that bugs can be opened directly in an editor and manually edited.  In fact, `b` itself does not the ability to set many of the attributes in the bug files from the command line.  It is expected that users will manually open bugs (optionally using the `edit` command) and edit their contents directly.  For more info about the format of these YAML files and the supporting schema, have a look at [[docs/bugs]].
 
 
-### Some Suggested Use Cases: ##########################################################################################
+
+
+Some Suggested Use Cases
+------------------------------------------------------------------------------------------------------------------------
 Small scripts and tasks deserve version control, even if they're never going to be distributed elsewhere.  This is easy with Mercurial.  With `b` installed you get a fully functional bug tracker along with your VCS, no additional setup required! As soon as you install `b`, every repository on your machine now has issue tracking functionality ready to use.
 
 Working on a project with a few other team members is ideal for `b`, it's powerful enough to let everyone track what they need to do, and allow everyone to contribute what they can to any of the bugs on file.  They can search titles for matching bugs, and even grep through the details directory to find details matching what they're looking for.
-
-
-
-
-Using `b`
-------------------------------------------------------------------------------------------------------------------------
-You're encouraged to read the documentation on [`t`](http://stevelosh.com/projects/t/) before using `b` - much of the functionality and usage philosophy of `t` is carried over here.
-
-All `b` commands take the form `hg b COMMAND [OPTIONS] [ARGUMENTS]`.  You can see a full list and command signatures by running `hg help b`.
-
-When you're anywhere within a repository with the `b` extension enabled you can use `b`.  To file a new bug, all you have to do is run:
-
-    $ hg b add 'This is a new bug'
-
-And you can confirm it's been added by calling:
-
-    $ hg b list
-
-Which will show you your new bug, along with an ID to refer to it by.  These IDs are actually prefixes of the full bug ID, like Mercurial revision IDs, and will get longer as more bugs are added.  If you need a permanent reference to a bug, you can pass a prefix to
-
-    $ hg b id ID
-
-This will return the full ID of the bug.  You'll likely only ever need the first eight or so characters - a database of 20,000+ bugs only used the first four or five in most cases.
-
-To rename a bug, you can call:
-
-    $ hg b rename ID 'NEW NAME HERE'
-
-And like `t`'s edit command, you can use sed style replacements if you so desire.
-
-When you're finished with a bug, simply call
-
-    $ hg b resolve ID
-
-and it will be marked resolved and no longer (by default) show up in your bug list.  Use 'reopen' in the same fashion if you decide to reopen a closed bug.
-
-If you need to record more detail than just a title, edit
-
-    $ hg b edit ID
-
-will launch your default commit editor with a pre-populated set of sections you can fill out.  Nothing is mandatory, and you can create or delete new sections as you'd like.
-
-To view the details of a bug you call:
-
-    $ hg b details ID
-
-This provides some basic metadata like date filed and owner, along with the contents of the details file, if it exists.  Any sections (denoted by text in square brackets) which are empty are not displayed by the details command to simplify the output.
-
-If you want to add a comment to a bug, like feedback or an update on its status,
-
-    $ hg b comment ID 'COMMENT TEXT'
-
-will append your comment to the details file along with the date and, if set, your username (see below)
-
-To manage multi-user projects, you can set a bug username (see the Config Options section above for how to do that) to associate with bugs, and say something like
-
-    $ hg b assign ID 'John Cleese'
-
-If the specified username can't be found in the database, you'll be prompted to confirm that is the name you want to use, with the '-f' flag.  For ease of assigning bugs, you can use a prefix of a user's name, and as long as it's not ambiguous, `b` will assign it to the matching username, and let you know who it was ultimately assigned to so you can double check.  Assuming no other users named John, calling:
-
-    $ hg b assign ID john
-
-would have the same effect as the call above.  The special name 'me' will assign the bug to your username, and the special name 'Nobody' will mark the bug as unassigned.
-
-To see a list of all users `b` is currently aware of, and the number of open bugs assigned to them, you can call:
-
-    $ hg b users
-
-Finally, `list` has some advanced functionality that's worth knowing.
-
-* `-r`: list resolved bugs, instead of open bugs
-* `-o`: takes a username (or a username prefix) and lists bugs owned by the specified user
-* `-g`: list bugs which contain the specified text in their title
-* `-a`: sort issues alphabetically
-* `-c`: sort issues chronologically
-
-These flags can be used together for fairly granular browsing of your bugs database.  In addition, you can use the `-T` flag to truncate output that would otherwise overflow beyond one line.
-
-
-The read-only commands (`list`, `details`, `users`, and `id`) have an additional `--rev` option that can be used to run that command against a committed revision of the bug database.  To see the list of issues open at the time of this release for instance, you could run:
-
-    $ hg b list --rev 6.0-rc-2

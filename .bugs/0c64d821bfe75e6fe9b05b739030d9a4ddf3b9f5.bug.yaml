@@ -1,0 +1,7 @@
+title: Users command should support a '-r' flag to include resolved bugs
+type: Feature
+open: true
+author: Jared <jaredjulien@exsystems.net>
+entered: '2023-06-14T15:09:54.736459-04:00'
+what: It might be nice to know how many bugs have been resolved by various users to date?
+why: To be able to get a report of what users have been historically involved too.

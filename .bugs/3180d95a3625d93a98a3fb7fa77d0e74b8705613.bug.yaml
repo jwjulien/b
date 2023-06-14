@@ -1,0 +1,13 @@
+title: Add a new verify command
+type: Feature
+open: true
+author: Jared <jaredjulien@exsystems.net>
+owner: Jared <jaredjulien@exsystems.net>
+entered: '2023-06-14T13:18:39.285928-04:00'
+what: Add a new command w/ parser to support verifying all existing bugs.
+why: There is no way for a user to know if their manual edits made to bugs violate the schema.
+how: |-
+    Would be ideal if the schema could be used to handle the validation.
+
+    It is not expected that the tool would handle any "fixes".  Simply report them and
+    let the user correct them manually and rerun the verification.
