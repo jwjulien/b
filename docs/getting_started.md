@@ -1,6 +1,6 @@
 Getting Stared Using `b`
 ========================================================================================================================
-If you haven't already, start by [[installing]] b on your system.  Once installed, the `b` command should be available at any command prompt on your system.  Verify that you have properly installed `b` by running:
+If you haven't already, start by [installing](installation) b on your system.  Once installed, the `b` command should be available at any command prompt on your system.  Verify that you have properly installed `b` by running:
 
     $ b version
 

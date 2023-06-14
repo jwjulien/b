@@ -12,7 +12,7 @@ To get started using `b`, a `.bugs` directory must first be initialized.  To ini
 
 Then, from anywhere in the project (i.e. from the root directory or any subdirectory under the root) you can then interact with `b`.
 
-For more help with setting up a new .bugs directory, please see the [[../getting_started]] guide.
+For more help with setting up a new .bugs directory, please see the [getting started](../getting_started) guide.
 
 
 

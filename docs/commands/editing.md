@@ -25,7 +25,7 @@ To edit the details for a bug, use the edit command:
 
     $ b edit <prefix>
 
-This will open the YAML file for the bug in the editor of your choice (set via the `editor` [[config]] option) allowing you to edit all of the bug's details directly.
+This will open the YAML file for the bug in the editor of your choice (set via the `editor` [config](config) option) allowing you to edit all of the bug's details directly.
 
 
 
@@ -56,7 +56,7 @@ This is normal, and is simply trying to ensure that you're aware that you're ass
 The "owner" can have a couple of special values too:
 
 me
-:   Will assign the bug to you - the username set via the `user` [[config]] option.
+:   Will assign the bug to you - the username set via the `user` [config](config) option.
 
 nobody
 :   Will unassign the bug from any current ownership.
@@ -92,6 +92,6 @@ To add a new comment to the comments section of a bug, which also include the co
 
     $ b comment <prefix> "Comment text"
 
-This will append your comment to the YAML file along with the date and your username from the [[config]] file.
+This will append your comment to the YAML file along with the date and your username from the [config](config) file.
 
 Comments are especially helpful for documenting the progress and status of the investigative or corrective action steps of a bug.
