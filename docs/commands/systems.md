@@ -32,3 +32,16 @@ If you have updated from an older version of `b`, then you might have a .bugs di
     $ b migrate
 
 This will transform the .bugs directory to the latest format making them compatible with the installed version of `b`.
+
+
+
+
+Verify Command
+------------------------------------------------------------------------------------------------------------------------
+Verify each of the bug YAML files against the schema provided in this package (in JSON format - seems strange, but that's what the tools seem to want).  Running:
+
+    $ b verify
+
+Will walk through each of the YAML files in the .bugs directory and report any schema errors that are found.
+
+The tool will make no modifications to any of the files.  It is the users responsibility to make changes and re-run the `verify` command.

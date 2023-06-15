@@ -6,7 +6,7 @@ Commands have been grouped by functionality.  For help with individual commands,
 - [Read-Only Commands](read-only.md) - `list`, `details`, `users`, `id`
 - [Configuration](config.md) - `config`
 - [Templates](templates.md) - `templates`
-- [System](system.md) - `init`, `version`, `migrate`
+- [System](system.md) - `init`, `version`, `verify`, `migrate`
 
 
 
@@ -27,6 +27,7 @@ All `b` commands take the form `b COMMAND [OPTIONS] [ARGUMENTS]`.  You can see a
     reopen              mark the specified bug as open
     list                list all bugs according to the specified filters
     id                  given a prefix return the full ID of a bug
+    verify              run through each bug YAML file and validate it against schema, reporting errors
     templates           list templates available when creating new bug reports
     config              adjust configurations - default lists all
     migrate             migrate bugs directory to the latest version
@@ -43,3 +44,22 @@ Similarly, additional help for each command can be solicited by issuing `b COMMA
     -g, --grep GREP       filter by the search string appearing in the title
     -a, --alpha           list bugs alphabetically
     -c, --chrono          list bugs chronologically
+
+
+
+
+Output Verbosity
+------------------------------------------------------------------------------------------------------------------------
+To increase the verbosity of the tool and report more information about what is happening internally, use the `-v` flag.
+
+The `-v` flag is unique in that it must be place **before** the command.  For example,
+
+    $ b -v verify
+
+This will print INFO level logging output.  To increase the verbosity further, add another 'v':
+
+    $ b -vv verify
+
+Which will switch to printing DEBUG level logging information.  This is as verbose as `b` will get.
+
+The verbose switch is compatible with all `b` commands, however, not every command has verbose details to print.
