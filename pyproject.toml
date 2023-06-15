@@ -21,6 +21,7 @@ rich = "^13.3.5"
 rich-argparse = "^1.1.0"
 appdirs = "^1.4.4"
 PyYAML = "^6.0"
+jsonschema = "^4.17.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"

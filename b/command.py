@@ -216,6 +216,10 @@ def run():
     _add_arg_prefix(parser_id)
     _add_arg_edit(parser_id)
 
+    commands.add_parser('verify',
+                        help='run through each bug YAML file and validate it against schema, reporting errors',
+                        formatter_class=RichHelpFormatter)
+
     parser_templates = commands.add_parser('templates',
                                            help='list templates available when creating new bug reports',
                                            formatter_class=RichHelpFormatter)
@@ -338,6 +342,9 @@ def run():
 
             elif args.command == 'users':
                 tracker.users()
+
+            elif args.command == 'verify':
+                tracker.verify()
 
             elif args.command == 'templates':
                 if args.custom:

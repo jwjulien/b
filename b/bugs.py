@@ -17,11 +17,14 @@ import shutil
 import subprocess
 import hashlib
 import time
+import json
 import logging
+from glob import glob
 from datetime import datetime
 from typing import Dict, List
 
 import yaml
+import jsonschema
 from rich import print, box
 from rich.console import group
 from rich.panel import Panel
@@ -561,6 +564,42 @@ class Tracker:
         if grep:
             out += f' whose title contains {grep}'
         print(out)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def verify(self) -> None:
+        """Verify that each individual bugs file in the bugs folder matches the JSON schema and print any errors."""
+        schema_file = os.path.join(os.path.dirname(__file__), 'schema', 'bug.schema.json')
+        logging.info('Verifying bug files against schema %s', schema_file)
+        with open(schema_file) as handle:
+            schema = json.load(handle)
+        validator = jsonschema.Draft202012Validator(schema)
+        at_least_one = False
+
+        # Scan through each of the YAML files in bugsdir.
+        for filename in glob(os.path.join(self.bugsdir, '*.bug.yaml')):
+            # Load the YAML data.
+            with open(filename, 'r') as handle:
+                data = yaml.safe_load(handle)
+
+            # Make filename relative to the bugsdir for better error message printing.
+            filename = os.path.relpath(filename, os.path.dirname(self.bugsdir))
+
+            # Get a list of errors.
+            errors = list(validator.iter_errors(data))
+
+            if errors:
+                # Print info about each of the errors, should they exist.
+                at_least_one = True
+                print(f'[red]{len(errors)} schema violation{"s" if len(errors) > 1 else ""} found in {filename}')
+                for idx, error in enumerate(errors):
+                    print(f'- {idx + 1}: {error.message}')
+            else:
+                logging.debug('No schema violations found in %s', filename)
+
+        # If none of the files produced any errors, then let the user know that everything is great.
+        if not at_least_one:
+            print('[green]No schema violations were found')
 
 
 # ----------------------------------------------------------------------------------------------------------------------

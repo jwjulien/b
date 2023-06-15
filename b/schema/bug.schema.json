@@ -20,12 +20,12 @@
                 "author": {
                     "type": "string",
                     "description": "The person who submitted the bug/feature.\n\nFormat is \"Name <email.address@example.com>\".",
-                    "pattern": "^[a-zA-Z0-9._-\\s]+<?[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*>$"
+                    "pattern": "^[a-zA-Z0-9._\\-\\s]+<?[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*>$"
                 },
                 "owner": {
                     "type": "string",
                     "description": "The person currently responsible for the bug/feature.\n\nFormat is \"Name <email.address@example.com>\".",
-                    "pattern": "^[a-zA-Z0-9._-\\s]+<?[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*>$"
+                    "pattern": "^[a-zA-Z0-9._\\-\\s]+<?[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*>$"
                 },
                 "type": {
                     "type": "string",
@@ -52,7 +52,7 @@
                             "author": {
                                 "type": "string",
                                 "description": "The name of the commenter.\n\nFormat is \"Name <email.address@example.com>\".",
-                                "pattern": "^[a-zA-Z0-9._-\\s]+<?[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*>$"
+                                "pattern": "^[a-zA-Z0-9._\\-\\s]+<?[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*>$"
                             },
                             "date": {
                                 "type": "string",

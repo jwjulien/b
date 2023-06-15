@@ -28,7 +28,7 @@ decision: |-
   effort to piece back together.
 comments:
 - author: jared <jaredjulien@exsystems.net>
-  date: 2023-05-24T15:32:00-04:00
+  date: '2023-05-24T15:32:00-04:00'
   text: |
     This does present an issue where version control will see this as an add/remove rather than a state change.
 
