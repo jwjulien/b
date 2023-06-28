@@ -29,6 +29,7 @@ from rich import print, box
 from rich.console import group
 from rich.panel import Panel
 from rich.table import Table
+from rich.tree import Tree
 
 from b import exceptions, migrations
 
@@ -175,16 +176,19 @@ class Tracker:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def _users_list(self):
+    def _users_list(self, scope: str = 'open'):
         """Returns a mapping of usernames to the number of open bugs assigned to that user."""
-        counts = {}
+        bugs = {}
         for bug in self._all_bugs():
+            if scope == 'open' and not bug['open']:
+                continue
+            if scope == 'resolved' and bug['open']:
+                continue
             owner = bug.get('owner')
-            if owner not in counts:
-                counts[owner] = 0
-            if bug['open']:
-                counts[owner] += 1
-        return dict(sorted(list(counts.items()), key=lambda count: count[1], reverse=True))
+            if owner not in bugs:
+                bugs[owner] = []
+            bugs[owner].append(bug)
+        return dict(sorted(list(bugs.items()), key=lambda attrs: len(attrs[1]), reverse=True))
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -512,17 +516,36 @@ class Tracker:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def users(self):
-        """Prints a list of users along with their number of open bugs."""
-        table = Table(box=box.SIMPLE_HEAD)
+    def users(self, scope: str = 'open', detailed: bool = False):
+        """Prints bugs grouped by their current owner."""
+        def username(text: str) -> str:
+            return user or "[i]*unassigned*[/i]"
 
-        table.add_column('Username', justify='right', header_style='blue', style='blue')
-        table.add_column('Open Bugs', header_style='magenta', style='magenta')
+        if not detailed:
+            # For a non-detailed, summary view, show a table of users with a simple bug count.
+            table = Table(box=box.SIMPLE_HEAD)
 
-        for (user, count) in self._users_list().items():
-            table.add_row(user or "*unassigned*", str(count))
+            table.add_column('Username', justify='right', header_style='blue', style='blue')
+            table.add_column(f'{scope.title()} Bugs', header_style='magenta', style='magenta')
 
-        print(table)
+            for (user, bugs) in self._users_list(scope).items():
+                table.add_row(username(user), str(len(bugs)))
+
+            print(table)
+
+        else:
+            # For a detailed view, show the users as a tree with bugs as branches under each user.
+            prefixes = self._prefixes()
+            tree = Tree(f'{scope} bugs')
+            for user, bugs in self._users_list(scope).items():
+                if bugs:
+                    branch = tree.add(username(user))
+                    for bug in bugs:
+                        status = '[red]open[/]' if bug['open'] else '[green]resolved[/]'
+                        branch.add(f"[cyan]{prefixes[bug['id']]}[/cyan]: {bug['title']} ({status})")
+
+            print(tree)
+
 
 
 # ----------------------------------------------------------------------------------------------------------------------

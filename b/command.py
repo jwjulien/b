@@ -123,7 +123,32 @@ def run():
     _add_arg_text(parser_rename, 'new title text for the bug')
     _add_arg_edit(parser_rename)
 
-    commands.add_parser('users', help='display a list of all users and the number of open bugs assigned to each')
+    parser_users = commands.add_parser(
+        'users',
+        help='display a list of all users and the number of open bugs assigned to each'
+    )
+    parser_users.add_argument(
+        '-d',
+        '--detailed',
+        action='store_true',
+        default=False,
+        help='list individual bugs grouped by owner'
+    )
+    scope_group = parser_users.add_mutually_exclusive_group()
+    scope_group.add_argument(
+        '-r',
+        '--resolved',
+        action='store_true',
+        default=False,
+        help='show resolved bugs associated with owners'
+    )
+    scope_group.add_argument(
+        '-a',
+        '--all',
+        action='store_true',
+        default=False,
+        help='show all bugs associated with each owner'
+    )
 
     parser_assign = commands.add_parser('assign',
                                         help='assign bug denoted by PREFIX to username',
@@ -358,7 +383,8 @@ def run():
                 tracker.reopen(args.prefix)
 
             elif args.command == 'users':
-                tracker.users()
+                scope = 'all' if args.all else 'resolved' if args.resolved else 'open'
+                tracker.users(scope, args.detailed)
 
             elif args.command == 'verify':
                 tracker.verify()
