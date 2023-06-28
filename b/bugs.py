@@ -117,7 +117,6 @@ class Tracker:
             'owner',
             'details',
             'paths',
-            'comments',
             'reproduce',
             'expected',
             'actual',
@@ -128,7 +127,8 @@ class Tracker:
             'what',
             'why',
             'how',
-            'accepted'
+            'accepted',
+            'comments'
         ]
 
         # Add any additional keys into the list at the end and warn users about schema violations too.

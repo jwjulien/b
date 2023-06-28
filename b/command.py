@@ -275,7 +275,7 @@ def run():
     # Parser arguments from the command line - with a special case for no command which defaults to "list".
     args, extras = parser.parse_known_args()
     if args.command is None:
-        args.comment = 'list'
+        args.command = 'list'
         args = parser_list.parse_args(extras, namespace=args)
 
     # If the text argument is present join the possible multiple values into a single string.

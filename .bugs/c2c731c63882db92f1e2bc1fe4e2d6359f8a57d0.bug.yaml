@@ -1,0 +1,16 @@
+title: Support a "serve" command
+type: Feature
+open: true
+author: Jared <jaredjulien@exsystems.net>
+entered: '2023-06-28T09:46:42.599899-04:00'
+what: |-
+  Similar to what Mercurial does.
+
+  Provide a new `serve` command that spawns a local webserver and allows the user
+  to browse the "bugs" from, well, their browser.
+why: |-
+  It would be nice to be able to browse and sort burgs using a browser like a GUI.
+
+  I don't have any desire to build a fancy GUI for `b`, so this would be a nice,
+  cross-platform compromise.
+how: Presumably with a tool like Flask.  Keep the JavaScripts minimal and the UI simple.

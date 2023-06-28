@@ -1,0 +1,35 @@
+title: Show details when prefix is provided w/o command
+type: Feature
+open: true
+author: Jared <jaredjulien@exsystems.net>
+entered: '2023-06-28T09:50:42.557141-04:00'
+owner: Jared <jaredjulien@exsystems.net>
+comments:
+- author: Jared <jaredjulien@exsystems.net>
+  date: '2023-06-28T10:36:36.368662-04:00'
+  text: This really feels like it's going to be difficult and hacky to implement.  It
+    doesn't seem as if the ArgumentParser add_subparser will allow arbitrary commands.  So
+    all that can be done is to skip error checking within ArgumentParser and let b
+    catch the exception in an attempt to process the prefix, but in this case the
+    args get lost.
+what: Show "details" for a bug if a prefix is provided without a command.
+why: |-
+  That is just the intuitive use case.
+
+  When using `b`, I often first run `b` with no command to get a list of open bugs.
+
+  The next step is usually to want to get details for one of those open bugs, and being
+  able to just type `b xxx` rather than having to type `b details xxx` would be a more
+  natural flow.
+how: |-
+  This would have to somehow hook ArgumentParser to handle unknown commands.
+
+  When an unknown command is detected, it should check to see if a bug matches that
+  "command" as if if were a prefix.
+
+  If a bug is returned, invoke the details command for that bugs.
+
+  If no bug matches the prefix then report the "invalid command" exception.
+
+  This needs to be cognizant of the switches that are available to the current default,
+  the "list" command.  Running `b -r` should still list all of the resolved bugs.
