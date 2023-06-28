@@ -33,12 +33,14 @@ Or, as list is the default command, simply:
 The list command output can be tweaked using a number of flags in various combinations:
 
 * `-r`: list resolved bugs, instead of open bugs
+* `-a`: list all bugs, open and resolved
 * `-o`: takes a username (or a username prefix) and lists bugs owned by the specified user
 * `-g`: list bugs which contain the specified text in their title
 * `-a`: sort issues alphabetically
 * `-c`: sort issues chronologically
+* `-d`: list im descending order (best used with `-a` or `-c` to reverse the order)
 
-These flags can be used together for fairly granular browsing of your bugs database
+These flags can be used together for fairly granular browsing of your bugs database.
 
 
 
@@ -61,4 +63,10 @@ To generate a report that shows the number of open bugs assigned to each user ru
 
     $ b users
 
-If you wish to see which specific bugs are assigned to a user, switch to the `list` command and make user of the `-o` flag.
+To see the bugs associated with each used use the `-d` switch:
+
+    $ b users -d
+
+`b` will then produce a tree showing each user and the bugs then have been assigned to under each.
+
+By default, the `users` command shows *open* bugs assigned to each user.  To see *resolved* bugs instead, use the `-r` switch.  Or, to see *all* bugs, use the `-a` switch instead.
