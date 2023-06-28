@@ -200,7 +200,7 @@ def run():
     parser_list = commands.add_parser('list',
                                       help='list all bugs according to the specified filters',
                                       formatter_class=RichHelpFormatter)
-    scope_group = parser.add_mutually_exclusive_group()
+    scope_group = parser_list.add_mutually_exclusive_group()
     scope_group.add_argument(
         '-r',
         '--resolved',
@@ -236,18 +236,18 @@ def run():
     )
     sort_group = parser_list.add_mutually_exclusive_group()
     sort_group.add_argument(
-        '-a',
-        '--alpha',
+        '-t',
+        '--title',
         action='store_true',
         default=False,
-        help='list bugs alphabetically'
+        help='list bugs alphabetically by title'
     )
     sort_group.add_argument(
-        '-c',
-        '--chrono',
+        '-e',
+        '--entered',
         action='store_true',
         default=False,
-        help='list bugs chronologically'
+        help='list bugs chronologically by entered date'
     )
 
     parser_id = commands.add_parser('id',
@@ -344,6 +344,8 @@ def run():
         logging.debug('- editor = "%s"', settings.get('editor'))
 
         logging.debug('Issued command: "%s"', args.command)
+        for key, value in args.__dict__.items():
+            logging.debug('Argument: "%s" = %s', key, value)
 
         try:
             # Handle the specified command.
@@ -370,7 +372,7 @@ def run():
 
             elif args.command is None or args.command == 'list':
                 scope = 'all' if args.all else 'resolved' if args.resolved else 'open'
-                sort = 'alpha' if args.alpha else 'chrono' if args.chrono else None
+                sort = 'title' if args.title else 'entered' if args.entered else None
                 tracker.list(scope, args.owner, args.grep, sort, args.descending)
 
             elif args.command == 'rename':

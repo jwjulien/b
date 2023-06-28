@@ -36,9 +36,9 @@ The list command output can be tweaked using a number of flags in various combin
 * `-a`: list all bugs, open and resolved
 * `-o`: takes a username (or a username prefix) and lists bugs owned by the specified user
 * `-g`: list bugs which contain the specified text in their title
-* `-a`: sort issues alphabetically
-* `-c`: sort issues chronologically
-* `-d`: list im descending order (best used with `-a` or `-c` to reverse the order)
+* `-t`: sort issues by title in alphabetical order
+* `-e`: sort issues chronologically by entered date
+* `-d`: list im descending order (best used with `-t` or `-e` to reverse the order)
 
 These flags can be used together for fairly granular browsing of your bugs database.
 

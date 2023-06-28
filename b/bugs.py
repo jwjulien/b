@@ -519,7 +519,10 @@ class Tracker:
     def users(self, scope: str = 'open', detailed: bool = False):
         """Prints bugs grouped by their current owner."""
         def username(text: str) -> str:
-            return user or "[i]*unassigned*[/i]"
+            """Handle the special user of None for bugs not assigned to a specific owner."""
+            if text is None:
+                text = '[i]unassigned[/i]'
+            return text
 
         if not detailed:
             # For a non-detailed, summary view, show a table of users with a simple bug count.
@@ -571,12 +574,12 @@ class Tracker:
                 continue
             filtered.append(bug)
 
-        # Sort by title, alphabetically when the `-a` switch is provided.
-        if sort == 'alpha':
+        # Sort by title, alphabetically when the `-t` switch is provided.
+        if sort == 'title':
             filtered = sorted(filtered, key=lambda x: x.get('title', '').lower())
 
-        # Sort by entered date when the `-c` switch is provided (note: mutually exclusive with `-a` alpha switch).
-        elif sort == 'chrono':
+        # Sort by entered date when the `-e` switch is provided (note: mutually exclusive with `-t` alpha switch).
+        elif sort == 'entered':
             filtered = sorted(filtered, key=lambda bug: bug.get('entered'))
 
         # Invert the list when the `-d` descending switch is provided.
