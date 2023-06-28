@@ -175,12 +175,20 @@ def run():
     parser_list = commands.add_parser('list',
                                       help='list all bugs according to the specified filters',
                                       formatter_class=RichHelpFormatter)
-    parser_list.add_argument(
+    scope_group = parser.add_mutually_exclusive_group()
+    scope_group.add_argument(
         '-r',
         '--resolved',
         action='store_true',
         default=False,
         help='include resolved bugs'
+    )
+    scope_group.add_argument(
+        '-a',
+        '--all',
+        action='store_true',
+        default=False,
+        help='list all bugs, resolved and open'
     )
     parser_list.add_argument(
         '-o',
@@ -193,6 +201,13 @@ def run():
         '--grep',
         default='',
         help='filter by the search string appearing in the title'
+    )
+    parser_list.add_argument(
+        '-d',
+        '--descending',
+        action='store_true',
+        default=False,
+        help='invert results to display in descending order - best used with -a or -c'
     )
     sort_group = parser_list.add_mutually_exclusive_group()
     sort_group.add_argument(
@@ -329,7 +344,9 @@ def run():
                 tracker.id(args.prefix)
 
             elif args.command is None or args.command == 'list':
-                tracker.list(not args.resolved, args.owner, args.grep, args.alpha, args.chrono)
+                scope = 'all' if args.all else 'resolved' if args.resolved else 'open'
+                sort = 'alpha' if args.alpha else 'chrono' if args.chrono else None
+                tracker.list(scope, args.owner, args.grep, sort, args.descending)
 
             elif args.command == 'rename':
                 tracker.rename(args.prefix, args.text)

@@ -453,6 +453,7 @@ class Tracker:
         bug = self._get_bug(prefix)
         bug['open'] = False
         self._write(bug)
+        print(f'[cyan]{prefix}[/cyan] marked [i]resolved[/i]')
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -461,6 +462,7 @@ class Tracker:
         bug = self._get_bug(prefix)
         bug['open'] = True
         self._write(bug)
+        print(f'[cyan]{prefix}[/cyan] was [b]re-opened[/b]')
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -524,7 +526,7 @@ class Tracker:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def list(self, is_open=True, owner='*', grep='', alpha=False, chrono=False, truncate=0):
+    def list(self, scope='open', owner='*', grep='', sort='', descending=False):
         """Lists all bugs, applying the given filters"""
         if not os.path.exists(self.bugsdir):
             raise exceptions.NotInitialized('No bugs directory found - use `init` command first')
@@ -534,36 +536,57 @@ class Tracker:
         if owner != '*':
             owner = self._get_user(owner)
 
-        filtered = [bug for bug in self._all_bugs()
-                    if bug['open'] == is_open
-                    and (owner == '*' or owner == bug.get('owner'))
-                    and (grep == '' or grep.lower() in bug['title'].lower())]
+        filtered = []
+        for bug in self._all_bugs():
+            if scope == 'open' and not bug['open']:
+                continue
+            if scope == 'resolved' and bug['open']:
+                continue
+            if owner != '*' and owner != bug.get('owner'):
+                continue
+            if grep != '' and grep.lower() not in bug['title'].lower():
+                continue
+            filtered.append(bug)
 
-        if len(filtered) > 0:
-            plen = max([len(prefixes[bug['id']]) for bug in filtered])
-        else:
-            plen = 0
+        # Sort by title, alphabetically when the `-a` switch is provided.
+        if sort == 'alpha':
+            filtered = sorted(filtered, key=lambda x: x.get('title', '').lower())
 
-        if alpha:
-            filtered = sorted(filtered, key=lambda x: x.title.lower())
+        # Sort by entered date when the `-c` switch is provided (note: mutually exclusive with `-a` alpha switch).
+        elif sort == 'chrono':
+            filtered = sorted(filtered, key=lambda bug: bug.get('entered'))
 
-        if chrono:
-            filtered = sorted(filtered, key=lambda bug: bug['entered'])
+        # Invert the list when the `-d` descending switch is provided.
+        if descending:
+            filtered = list(reversed(filtered))
 
+        # Generate a table listing each of the bugs.
+        table = Table(box=box.SIMPLE)
+        table.add_column('Entered')
+        table.add_column('Prefix', justify='right', style='cyan')
+        table.add_column('Title')
+        table.add_column('Status')
         for bug in filtered:
-            line = '[bold cyan]%s[/bold cyan] - %s' % (prefixes[bug['id']].rjust(plen), bug['title'])
-            if 0 < truncate < len(line):
-                line = line[:truncate - 4] + '...'
-            print(line)
+            timestamp = datetime.fromisoformat(bug['entered']).strftime('%Y-%m-%d %I:%M')
+            status = '[red]open[/red]' if bug['open'] else '[green]resolved[/green]'
+            table.add_row(timestamp, prefixes[bug['id']], bug['title'], status)
 
-        out = f"Found {len(filtered)} "
-        out += 'open' if is_open else 'resolved'
-        out += f" bug{'' if len(filtered) == 1 else 's'}"
+        # Print the table - thanks Rich!
+        if table.columns:
+            print(table)
+        else:
+            print('[i]{title}[/i]')
+
+        # Generate a summary string.
+        summary = f'Found {len(filtered)} '
+        summary += f'{scope} ' if scope != 'all' else ''
+        summary += f"bug{'' if len(filtered) == 1 else 's'}"
         if owner != '*':
-            out += f" owned by {'Nobody' if owner == '' else owner}"
+            summary += f" owned by {'Nobody' if owner == '' else owner}"
         if grep:
-            out += f' whose title contains {grep}'
-        print(out)
+            summary += f' whose title contains {grep}'
+        print(summary)
+
 
 
 # ----------------------------------------------------------------------------------------------------------------------
