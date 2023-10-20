@@ -1,0 +1,13 @@
+title: Switch from ArgumentParser to Click
+type: Feature
+open: true
+author: Jared <jaredjulien@exsystems.net>
+entered: '2023-10-20T17:01:50.133352-04:00'
+what: Switch to Pallet Projects Click package for command line interface.
+why: |-
+  Click has proved to be a MUCH cleaner interface for command line tools like B.
+
+  Click also support partial commands, a feature I have wanted.
+
+  It may be possible to implement a8579894b5213843c944e5dd17fb5495808239ba easier in Click, a task that has proven
+  rather difficult with ArgumentParser.
