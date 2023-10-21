@@ -1,10 +1,9 @@
 title: Refactor into config and template scripts
 type: Feature
-open: true
+open: false
 author: Jared <jaredjulien@exsystems.net>
 entered: '2023-10-21T12:44:12.742081-04:00'
 what: Split the groups from the current command.py file into separate python scripts.
 why: To reduce the complexity within the existing file.
-how: >-
-  Consider migrating the tracker methods directly into the commands - they are much more compartmentalized now that
-  we're using Click.
+how: Consider migrating the tracker methods directly into the commands - they are
+  much more compartmentalized now that we're using Click.

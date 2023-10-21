@@ -11,7 +11,6 @@
 # ======================================================================================================================
 # Import Statements
 # ----------------------------------------------------------------------------------------------------------------------
-import os
 import logging
 from importlib import metadata
 
@@ -20,7 +19,9 @@ from rich import print
 from rich.logging import RichHandler
 
 from b.bugs import Tracker
+from b.config import config
 from b.settings import Settings
+from b.templates import templates
 
 
 
@@ -221,100 +222,6 @@ def verify(ctx):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-@cli.group()
-@click.option('-c', '--custom', )
-def templates():
-    """Configure the bug templates available to this project."""
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-@templates.command()
-@click.option('-d', '--defaults', is_flag=True, help='list only the available non-customized templates')
-@click.pass_context
-def list(ctx, defaults: bool):
-    """List the templates that are available to the `add` command."""
-    print(f"Available {'default ' if defaults else ''}bug templates:")
-    templates = ctx.obj['tracker'].list_templates(only_defaults=defaults)
-    for name in sorted(templates.keys()):
-        base = os.path.relpath(os.path.dirname(templates[name]), os.path.dirname(ctx.obj['tracker'].bugsdir))
-        filename = os.path.basename(templates[name])
-        sep = os.path.sep.replace('\\', '\\\\')
-        print(f'- [green]{name}[/] ([italic]{base}{sep}[yellow]{filename}[/])')
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-@templates.command()
-@click.argument('template')
-@click.pass_context
-def customize(ctx, template: str):
-    """Customize the TEMPLATE for this project."""
-    ctx.obj['tracker'].customize_template(template)
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-@templates.command(name='edit')
-@click.argument('template')
-@click.pass_context
-def edit_template(ctx, template: str):
-    ctx.obj['tracker'].edit_template(template)
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-@cli.group()
-def config():
-    """Change configuration settings for b."""
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-@config.command()
-@click.argument('key')
-@click.pass_context
-def unset(ctx, key):
-    """Remove the saved setting identified by KEY.
-
-    This restores the setting to it's default value.
-
-    To list the current settings, issue the "config list" command.
-    """
-    ctx.obj['settings'].unset(key)
-    ctx.obj['settings'].store()
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-@config.command()
-@click.pass_context
-def set(ctx, key: str, value: str):
-    """Set the setting identified by KEY to the provided VALUE."""
-    ctx.obj['settings'].set(key, value)
-    print(f'"{key}" set to "{value}"')
-    ctx.obj['settings'].store()
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-@config.command()
-@click.argument('key')
-@click.pass_context
-def get(ctx, key: str):
-    """Get the current value for the setting identified by KEY."""
-    print(key, '=', ctx.obj['settings'].get(key))
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-@config.command()
-@click.pass_context
-def list(ctx):
-    """List all of the currently configured settings."""
-    if ctx.obj['settings'].exists:
-        print(f"Config file is located at {ctx.obj['settings'].file}")
-    else:
-        print('All settings are currently defaults')
-
-    for key, value in ctx.obj['settings'].list():
-        print(f'{key}={value}')
-        # TODO: Indicate which settings are defaults.
-
-
-# ----------------------------------------------------------------------------------------------------------------------
 @cli.command()
 @click.pass_context
 def migrate(ctx):
@@ -328,6 +235,16 @@ def version():
     """Output the version information and exit."""
     version = metadata.version('b-bugtracker')
     print(f'b version {version}')
+
+
+
+# ======================================================================================================================
+# Main Function
+# ----------------------------------------------------------------------------------------------------------------------
+def main():
+    cli.add_command(config)
+    cli.add_command(templates)
+    return cli()
 
 
 

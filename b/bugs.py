@@ -320,9 +320,7 @@ class Tracker:
         """
         available = self.list_templates(only_custom=True)
         if template not in available:
-            message = f'Custom template {template} does not exit.'
-            message += '\nPerhaps you meant to create a custom template (-c) instead?'
-            raise exceptions.InvalidInput(message)
+            raise FileNotFoundError
         path = available[template]
         self._launch_editor(path)
 

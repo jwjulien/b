@@ -26,7 +26,7 @@ click = "^8.1.7"
 pytest = "^6.2.5"
 
 [tool.poetry.scripts]
-b = 'b.command:cli'
+b = 'b.command:main'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
