@@ -13,7 +13,9 @@
 # ----------------------------------------------------------------------------------------------------------------------
 import os
 from configparser import ConfigParser, NoSectionError, NoOptionError
-from typing import Dict, List, Tuple
+import getpass
+import logging
+from typing import List, Tuple
 
 import appdirs
 
@@ -33,11 +35,17 @@ class InvalidSetting(Exception):
 # Setting Class
 # ----------------------------------------------------------------------------------------------------------------------
 class Settings:
-    def __init__(self, defaults: Dict[str, str]):
+    def __init__(self):
+        self.logger = logging.getLogger('settings')
         self.path = appdirs.user_data_dir('b', 'exsystems', roaming=True)
         self.file = os.path.join(self.path, 'settings.cfg')
         self.config = ConfigParser()
-        self.defaults = defaults
+        self.defaults = {
+            'general.editor': 'notepad' if os.name == 'nt' else 'nano',
+            'general.dir': '.bugs',
+            'general.user': getpass.getuser()
+        }
+        self.load()
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -48,14 +56,31 @@ class Settings:
 
 # ----------------------------------------------------------------------------------------------------------------------
     def __enter__(self):
-        if os.path.exists(self.file):
-            with open(self.file, 'r') as handle:
-                self.config.read_file(handle)
         return self
 
 
 # ----------------------------------------------------------------------------------------------------------------------
     def __exit__(self, type, value, traceback):
+        self.store()
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def load(self) -> None:
+        if os.path.exists(self.file):
+            with open(self.file, 'r') as handle:
+                self.config.read_file(handle)
+        keys = list(self.defaults.keys())
+        for section in self.config.sections():
+            for option in self.config.options(section):
+                keys.append(f'{section}.{option}')
+        keys = list(set(keys))
+        self.logger.debug('Current settings:')
+        for key in sorted(keys):
+            self.logger.debug('- %s = "%s"', key, self.get(key))
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+    def store(self) -> None:
         os.makedirs(self.path, exist_ok=True)
         with open(self.file, 'w') as handle:
             self.config.write(handle)

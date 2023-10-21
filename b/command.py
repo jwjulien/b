@@ -6,444 +6,328 @@
 #   Copyright:  (c) 2010-2011 Michael Diamond <michael@digitalgemstones.com>
 #               (c) 2022-2023 Jared Julien <jaredjulien@exsystems.net>
 # ---------------------------------------------------------------------------------------------------------------------
-"""Standalone command line interface for b.
-
-Because this is standalone and does not involve Mercurial, the bits regarding specifying a revision have been stripped.
-"""
+"""Command line interface for b."""
 
 # ======================================================================================================================
 # Import Statements
 # ----------------------------------------------------------------------------------------------------------------------
 import os
-from argparse import ArgumentParser
 import logging
 from importlib import metadata
-import getpass
 
+import click
 from rich import print
-from rich_argparse import RichHelpFormatter
 from rich.logging import RichHandler
 
 from b.bugs import Tracker
 from b.settings import Settings
-from b import exceptions
-
-
-
-
-
-# ======================================================================================================================
-# Helper Functions
-# ----------------------------------------------------------------------------------------------------------------------
-def _add_arg_edit(parser):
-    """The edit flag is common across several subparsers.  This helper sets the same attributes for each."""
-    parser.add_argument(
-        '-e',
-        '--edit',
-        action='store_true',
-        default=False,
-        help='launch details editor for the bug'
-    )
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-def _add_arg_prefix(parser):
-    """Add the common prefix argument to the provided parser."""
-    parser.add_argument(
-        'prefix',
-        help='prefix of the bug'
-    )
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-def _add_arg_text(parser, help):
-    """Add the common TEXT input argument to the provided parser."""
-    parser.add_argument(
-        'text',
-        nargs='+',
-        help=help
-    )
 
 
 
 
 # ======================================================================================================================
-# Command Line Processing
+# CLI Application Base
 # ----------------------------------------------------------------------------------------------------------------------
-def run():
-    name = 'b-bugtracker'
-    description = metadata.metadata(name)['Summary']
-    version = metadata.version(name)
-    parser = ArgumentParser(description=description, formatter_class=RichHelpFormatter)
-
-    parser.add_argument(
-        '-v',
-        '--verbose',
-        action='count',
-        default=0,
-        help='increase verbosity of output'
-    )
-
-    commands = parser.add_subparsers(title='command', dest='command')
-
-    parser_init = commands.add_parser('init',
-                                      help='initialize a bugs directory for new bugs',
-                                      formatter_class=RichHelpFormatter)
-    parser_init.add_argument(
-        '-f',
-        '--force',
-        action='store_true',
-        default=False,
-        help='force the creation of a bugs directory in this location, even if one exists above this level'
-    )
-
-    parser_add = commands.add_parser('add',
-                                     help='adds a new open bug to the database',
-                                     formatter_class=RichHelpFormatter)
-    _add_arg_text(parser_add, 'title text for the new bug')
-    parser_add.add_argument(
-        '-s',
-        '--self',
-        action='store_true',
-        default=False,
-        help='assign self as owner of this new bug'
-    )
-    parser_add.add_argument(
-        '-t',
-        '--template',
-        default='bug',
-        help='specify template for new bug (default: bug) - use `templates` command to list available templates'
-    )
-    _add_arg_edit(parser_add)
-
-    parser_rename = commands.add_parser('rename',
-                                        help='rename the bug denoted by PREFIX to TEXT',
-                                        formatter_class=RichHelpFormatter)
-    _add_arg_prefix(parser_rename)
-    _add_arg_text(parser_rename, 'new title text for the bug')
-    _add_arg_edit(parser_rename)
-
-    parser_users = commands.add_parser(
-        'users',
-        help='display a list of all users and the number of open bugs assigned to each'
-    )
-    parser_users.add_argument(
-        '-d',
-        '--detailed',
-        action='store_true',
-        default=False,
-        help='list individual bugs grouped by owner'
-    )
-    scope_group = parser_users.add_mutually_exclusive_group()
-    scope_group.add_argument(
-        '-r',
-        '--resolved',
-        action='store_true',
-        default=False,
-        help='show resolved bugs associated with owners'
-    )
-    scope_group.add_argument(
-        '-a',
-        '--all',
-        action='store_true',
-        default=False,
-        help='show all bugs associated with each owner'
-    )
-
-    parser_assign = commands.add_parser('assign',
-                                        help='assign bug denoted by PREFIX to username',
-                                        formatter_class=RichHelpFormatter)
-    _add_arg_prefix(parser_assign)
-    parser_assign.add_argument(
-        'username',
-        help='username of user to be assigned - can be a prefix of an existing user or "nobody" to unassign'
-    )
-    parser_assign.add_argument(
-        '-f',
-        '--force',
-        action='store_true',
-        default=False,
-        help='do not attempt to map USERNAME as a prefix, instead use the provided username verbatim'
-    )
-    _add_arg_edit(parser_assign)
-
-    parser_details = commands.add_parser('details',
-                                         help='print the extended details of the specified bug',
-                                         formatter_class=RichHelpFormatter)
-    _add_arg_prefix(parser_details)
-    _add_arg_edit(parser_details)
-
-    parser_edit = commands.add_parser('edit',
-                                      help='launch the system editor to provide additional details',
-                                      formatter_class=RichHelpFormatter)
-    _add_arg_prefix(parser_edit)
-
-    parser_comment = commands.add_parser('comment',
-                                         help='append the provided comment to the details of the bug',
-                                         formatter_class=RichHelpFormatter)
-    _add_arg_prefix(parser_comment)
-    _add_arg_text(parser_comment, 'comment text to append')
-    _add_arg_edit(parser_comment)
-
-    parser_resolve = commands.add_parser('resolve',
-                                         help='mark the specified bug as resolved',
-                                         formatter_class=RichHelpFormatter)
-    _add_arg_prefix(parser_resolve)
-    _add_arg_edit(parser_resolve)
-
-    parser_reopen = commands.add_parser('reopen',
-                                        help='mark the specified bug as open',
-                                        formatter_class=RichHelpFormatter)
-    _add_arg_prefix(parser_reopen)
-    _add_arg_edit(parser_reopen)
-
-    parser_list = commands.add_parser('list',
-                                      help='list all bugs according to the specified filters',
-                                      formatter_class=RichHelpFormatter)
-    scope_group = parser_list.add_mutually_exclusive_group()
-    scope_group.add_argument(
-        '-r',
-        '--resolved',
-        action='store_true',
-        default=False,
-        help='include resolved bugs'
-    )
-    scope_group.add_argument(
-        '-a',
-        '--all',
-        action='store_true',
-        default=False,
-        help='list all bugs, resolved and open'
-    )
-    parser_list.add_argument(
-        '-o',
-        '--owner',
-        default='*',
-        help='"*" lists all, "nobody" lists unassigned, otherwise text to matched against username'
-    )
-    parser_list.add_argument(
-        '-g',
-        '--grep',
-        default='',
-        help='filter by the search string appearing in the title'
-    )
-    parser_list.add_argument(
-        '-d',
-        '--descending',
-        action='store_true',
-        default=False,
-        help='invert results to display in descending order - best used with -a or -c'
-    )
-    sort_group = parser_list.add_mutually_exclusive_group()
-    sort_group.add_argument(
-        '-t',
-        '--title',
-        action='store_true',
-        default=False,
-        help='list bugs alphabetically by title'
-    )
-    sort_group.add_argument(
-        '-e',
-        '--entered',
-        action='store_true',
-        default=False,
-        help='list bugs chronologically by entered date'
-    )
-
-    parser_id = commands.add_parser('id',
-                                    help='given a prefix return the full ID of a bug',
-                                    formatter_class=RichHelpFormatter)
-    _add_arg_prefix(parser_id)
-    _add_arg_edit(parser_id)
-
-    commands.add_parser('verify',
-                        help='run through each bug YAML file and validate it against schema, reporting errors',
-                        formatter_class=RichHelpFormatter)
-
-    parser_templates = commands.add_parser('templates',
-                                           help='list templates available when creating new bug reports',
-                                           formatter_class=RichHelpFormatter)
-    parser_templates.add_argument(
-        '-d',
-        '--defaults',
-        action='store_true',
-        default=False,
-        help='list only the default templates - no custom templates from the .bugs directory of the project'
-    )
-    parser_templates.add_argument(
-        '-c',
-        '--custom',
-        metavar='TEMPLATE',
-        help='copy the specified template to the project directory for customization'
-    )
-    parser_templates.add_argument(
-        '-e',
-        '--edit',
-        metavar='TEMPLATE',
-        help='open the custom template for editing'
-    )
-
-    config_parser = commands.add_parser('config',
-                                        help='adjust configurations - default lists all',
-                                        formatter_class=RichHelpFormatter)
-    config_parser.add_argument(
-        'key',
-        nargs='?',
-        help='the name of the setting'
-    )
-    config_parser.add_argument(
-        'value',
-        nargs='?',
-        help='the value of the setting to set'
-    )
-    config_parser.add_argument(
-        '-u',
-        '--unset',
-        action='store_true',
-        default=False,
-        help='restore variable to default value'
-    )
-
-    commands.add_parser('migrate',
-                        help='migrate bugs directory to the latest version',
-                        formatter_class=RichHelpFormatter)
-
-    commands.add_parser('version',
-                        help='output the version number of b and exit',
-                        formatter_class=RichHelpFormatter)
-
-    # Parser arguments from the command line - with a special case for no command which defaults to "list".
-    args, extras = parser.parse_known_args()
-    if args.command is None:
-        args.command = 'list'
-        args = parser_list.parse_args(extras, namespace=args)
-
-    # If the text argument is present join the possible multiple values into a single string.
-    if 'text' in args:
-        args.text = ' '.join(args.text).strip()
+@click.group(invoke_without_command=True)
+@click.option('-v', 'verbose', count=True, help='increase verbosity of output')
+@click.pass_context
+def cli(ctx, verbose):
+    """A simple, distributed bug tracker."""
+    ctx.ensure_object(dict)
 
     # Setup logging output.
     levels = [logging.WARNING, logging.INFO, logging.DEBUG]
-    level = levels[min(2, args.verbose)]
+    level = levels[min(2, verbose)]
     logging.basicConfig(level=level, format='%(message)s', datefmt="[%X]", handlers=[RichHandler()])
 
-    defaults = {
-        'general.editor': 'notepad' if os.name == 'nt' else 'nano',
-        'general.dir': '.bugs',
-        'general.user': getpass.getuser()
-    }
-    with Settings(defaults) as settings:
-        # Load the bug dictionary from the bugs file.
-        tracker = Tracker(settings.get('dir'), settings.get('user'), settings.get('editor'))
+    ctx.obj['settings'] = Settings()
+    ctx.obj['tracker'] = Tracker(
+        ctx.obj['settings'].get('dir'),
+        ctx.obj['settings'].get('user'),
+        ctx.obj['settings'].get('editor')
+    )
 
-        logging.info('Bugs directory: %s', tracker.bugsdir)
+    # Run list command with default settings if no command was issued.
+    if ctx.invoked_subcommand is None:
+        ctx.obj['tracker'].list()
 
-        logging.debug('Current settings:')
-        logging.debug('- dir = "%s"', settings.get('dir'))
-        logging.debug('- user = "%s"', settings.get('user'))
-        logging.debug('- editor = "%s"', settings.get('editor'))
 
-        logging.debug('Issued command: "%s"', args.command)
-        for key, value in args.__dict__.items():
-            logging.debug('Argument: "%s" = %s', key, value)
 
-        try:
-            # Handle the specified command.
-            if args.command == 'add':
-                args.prefix = tracker.add(args.text, args.template, args.self)
 
-            elif args.command == 'init':
-                tracker.initialize(args.force)
+# ======================================================================================================================
+# Commands
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.command()
+@click.option('-f', '--force', is_flag=True, help='force creation of .bugs directory at this location')
+@click.pass_context
+def init(ctx, force: bool):
+    """Initialize a bugs directory for new bugs."""
+    ctx.obj['tracker'].initialize(force)
 
-            elif args.command == 'assign':
-                tracker.assign(args.prefix, args.username, args.force)
 
-            elif args.command == 'comment':
-                tracker.comment(args.prefix, args.text)
 
-            elif args.command == 'details':
-                tracker.details(args.prefix)
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.command()
+@click.argument('title')
+@click.option('-s', '--self', is_flag=True, help='assign me as owner of this new bug, default is unowned')
+@click.option('-t', '--template', default='bug', help='specify the template to use for this bug')
+@click.option('-e', '--edit', is_flag=True, help='open this new bug for editing after creating')
+@click.pass_context
+def add(ctx, title: str, self: bool, template: str, edit: bool):
+    """Add a new, open bug to the tracker.
 
-            elif args.command == 'edit':
-                tracker.edit(args.prefix)
+    TITLE specifies the short summary text to to serve as a title for the bug.
 
-            elif args.command == 'id':
-                tracker.id(args.prefix)
+    The `template` can be specified using the '-t' or '--template' option.  The default template is "bug".  A complete
+    list of available templates can be found using the "template list" command.
+    """
+    prefix = ctx.obj['tracker'].add(title, template, self)
+    if edit:
+        ctx.obj['tracker'].edit(prefix)
 
-            elif args.command is None or args.command == 'list':
-                scope = 'all' if args.all else 'resolved' if args.resolved else 'open'
-                sort = 'title' if args.title else 'entered' if args.entered else None
-                tracker.list(scope, args.owner, args.grep, sort, args.descending)
 
-            elif args.command == 'rename':
-                tracker.rename(args.prefix, args.text)
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.command()
+@click.argument('prefix')
+@click.argument('title')
+@click.option('-e', '--edit', is_flag=True, help='open this bug for editing after changing the title')
+@click.pass_context
+def rename(ctx, prefix: str, title: str, edit: bool):
+    """Change the title of the bug denoted by PREFIX to the new TITLE."""
+    ctx.obj['tracker'].rename(prefix, title)
+    if edit:
+        ctx.obj['tracker'].edit(prefix)
 
-            elif args.command == 'resolve':
-                tracker.resolve(args.prefix)
 
-            elif args.command == 'reopen':
-                tracker.reopen(args.prefix)
 
-            elif args.command == 'users':
-                scope = 'all' if args.all else 'resolved' if args.resolved else 'open'
-                tracker.users(scope, args.detailed)
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.command()
+@click.option('-d', '--detailed', is_flag=True, help='list individual bugs for each owner')
+@click.option('-o', '--open', 'scope', flag_value='open', default=True, help='show only open bugs')
+@click.option('-r', '--resolved', 'scope', flag_value='resolved', help='list only resolved bugs')
+@click.option('-a', '--all', 'scope', flag_value='all', help='')
+@click.pass_context
+def users(ctx, detailed: bool, scope: str):
+    """Display a list of all users and the number of open bugs assigned to each.
 
-            elif args.command == 'verify':
-                tracker.verify()
+    By default, only the count of bugs for each owner are shown.  Use the '-d' flag to list individual bugs for each
+    user if more information is desired.
 
-            elif args.command == 'templates':
-                if args.custom:
-                    tracker.customize_template(args.custom)
-                elif args.edit:
-                    tracker.edit_template(args.edit)
-                else:
-                    print(f"Available {'default ' if args.defaults else ''}bug templates:")
-                    templates = tracker.list_templates(only_defaults=args.defaults)
-                    for name in sorted(templates.keys()):
-                        base = os.path.relpath(os.path.dirname(templates[name]), os.path.dirname(tracker.bugsdir))
-                        filename = os.path.basename(templates[name])
-                        sep = os.path.sep.replace('\\', '\\\\')
-                        print(f'- [green]{name}[/] ([italic]{base}{sep}[yellow]{filename}[/])')
+    By default, only open bugs are displayed for each user.  To list resolved bugs instead, use the '-r' option or to
+    list all bugs (both open and resolved) use the '-a' switch.
+    """
+    ctx.obj['tracker'].users(scope, detailed)
 
-            elif args.command == 'config':
-                if args.unset:
-                    if not args.key:
-                        raise exceptions.Error('Provide a key to be unset')
-                    settings.unset(args.key)
-                elif args.value is not None:
-                    # Set the value of the key
-                    settings.set(args.key, args.value)
-                    print(f'"{args.key}" set to "{args.value}"')
-                elif args.key is not None:
-                    # Fetch the value of the key.
-                    print(args.key, '=', settings.get(args.key))
-                else:
-                    # List the current settings.
-                    if settings.exists:
-                        print(f'Config file is located at {settings.file}')
-                    else:
-                        print('All settings are currently defaults')
-                    for key, value in settings.list():
-                        print(f'{key}={value}')
 
-            elif args.command == 'migrate':
-                tracker.migrate()
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.command()
+@click.argument('prefix')
+@click.argument('username')
+@click.option('-f', '--force', is_flag=True, help='force the user of USERNAME verbatim')
+@click.pass_context
+def assign(ctx, prefix: str, username: str, force: bool):
+    """Assign bug denoted by PREFIX to USERNAME.
 
-            elif args.command == 'version':
-                print(f'b version {version}')
+    USERNAME can be specified as "nobody" to remove ownership of the bug.
 
-            else:
-                raise exceptions.UnknownCommand(args.command)
+    The USERNAME can be a prefix of any username that is enough to uniquely identify an existing user.  For example,
+    providing a USERNAME of "mi" would be enough to identify a "michael" from a project where "michael" and "mark" are
+    existing users.  If you would like to assign a new user explicitly without this prefix-matching functionality use
+    the '-f' flag to force the assignment instead.
+    """
+    ctx.obj['tracker'].assign(prefix, username, force)
 
-        except exceptions.Error as error:
-            parser.error(str(error))
-            return 1
 
-        else:
-            if 'edit' in args and args.edit:
-                tracker.edit(args.prefix)
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.command()
+@click.argument('prefix')
+@click.pass_context
+def details(ctx, prefix: str):
+    """Print the extended details of the bug specified by PREFIX."""
+    ctx.obj['tracker'].details(prefix)
 
-    return 0
+
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.command()
+@click.argument('prefix')
+@click.pass_context
+def edit(ctx, prefix: str):
+    """Launch the system editor to provide additional details."""
+    ctx.obj['tracker'].edit(prefix)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.command()
+@click.argument('prefix')
+@click.argument('comment')
+@click.option('-e', '--edit', is_flag=True, help='open this bug for editing after adding comment')
+@click.pass_context
+def comment(ctx, prefix: str, comment: str, edit: bool):
+    """Append the provided COMMENT to the details of the bug identified by PREFIX."""
+    ctx.obj['tracker'].comment(prefix, comment)
+    if edit:
+        ctx.obj['tracker'].edit(prefix)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.command()
+@click.argument('prefix')
+@click.pass_context
+def resolve(ctx, prefix: str):
+    """Mark the bug identified by PREFIX as resolved."""
+    ctx.obj['tracker'].resolve(prefix)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.command()
+@click.argument('prefix')
+@click.pass_context
+def reopen(ctx, prefix: str):
+    """Mark the bug identified by PREFIX as open."""
+    ctx.obj['tracker'].reopen(prefix)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.command()
+@click.option('-O', '--open', 'scope', flag_value='open', default=True, help='list only open bugs')
+@click.option('-r', '--resolved', 'scope', flag_value='resolved', help='list only resolved bugs')
+@click.option('-a', '--all', 'scope', flag_value='all', help='list all bugs - open and resolved')
+@click.option('-o', '--owner', default='*', help='list bugs assigned to OWNER')
+@click.option('-g', '--grep', default='', help='filter results against GREP pattern')
+@click.option('-d', '--descending', is_flag=True, help='sort results in descending order')
+@click.option('-t', '--title', 'sort', flag_value='title', help='sort bug alphabetically by title')
+@click.option('-e', '--entered', 'sort', flag_value='entered', help='sort bugs chronologically by entered date')
+@click.pass_context
+def list(ctx, scope: str, owner: str, grep: str, descending: bool, sort: str):
+    """List all bugs according to the specified filters."""
+    ctx.obj['tracker'].list(scope, owner, grep, sort, descending)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.command()
+@click.argument('prefix')
+@click.pass_context
+def id(ctx, prefix: str):
+    """Print the full ID of the buf identified by PREFIX."""
+    ctx.obj['tracker'].id(prefix)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.command()
+@click.pass_context
+def verify(ctx):
+    """Verify that all bug YAML files are valid and report any discrepancies."""
+    ctx.obj['tracker'].verify()
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.group()
+@click.option('-c', '--custom', )
+def templates():
+    """Configure the bug templates available to this project."""
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@templates.command()
+@click.option('-d', '--defaults', is_flag=True, help='list only the available non-customized templates')
+@click.pass_context
+def list(ctx, defaults: bool):
+    """List the templates that are available to the `add` command."""
+    print(f"Available {'default ' if defaults else ''}bug templates:")
+    templates = ctx.obj['tracker'].list_templates(only_defaults=defaults)
+    for name in sorted(templates.keys()):
+        base = os.path.relpath(os.path.dirname(templates[name]), os.path.dirname(ctx.obj['tracker'].bugsdir))
+        filename = os.path.basename(templates[name])
+        sep = os.path.sep.replace('\\', '\\\\')
+        print(f'- [green]{name}[/] ([italic]{base}{sep}[yellow]{filename}[/])')
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@templates.command()
+@click.argument('template')
+@click.pass_context
+def customize(ctx, template: str):
+    """Customize the TEMPLATE for this project."""
+    ctx.obj['tracker'].customize_template(template)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@templates.command(name='edit')
+@click.argument('template')
+@click.pass_context
+def edit_template(ctx, template: str):
+    ctx.obj['tracker'].edit_template(template)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.group()
+def config():
+    """Change configuration settings for b."""
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@config.command()
+@click.argument('key')
+@click.pass_context
+def unset(ctx, key):
+    """Remove the saved setting identified by KEY.
+
+    This restores the setting to it's default value.
+
+    To list the current settings, issue the "config list" command.
+    """
+    ctx.obj['settings'].unset(key)
+    ctx.obj['settings'].store()
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@config.command()
+@click.pass_context
+def set(ctx, key: str, value: str):
+    """Set the setting identified by KEY to the provided VALUE."""
+    ctx.obj['settings'].set(key, value)
+    print(f'"{key}" set to "{value}"')
+    ctx.obj['settings'].store()
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@config.command()
+@click.argument('key')
+@click.pass_context
+def get(ctx, key: str):
+    """Get the current value for the setting identified by KEY."""
+    print(key, '=', ctx.obj['settings'].get(key))
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@config.command()
+@click.pass_context
+def list(ctx):
+    """List all of the currently configured settings."""
+    if ctx.obj['settings'].exists:
+        print(f"Config file is located at {ctx.obj['settings'].file}")
+    else:
+        print('All settings are currently defaults')
+
+    for key, value in ctx.obj['settings'].list():
+        print(f'{key}={value}')
+        # TODO: Indicate which settings are defaults.
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.command()
+@click.pass_context
+def migrate(ctx):
+    """Migrate bugs directory to the latest version."""
+    ctx.obj['tracker'].migrate()
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+@cli.command()
+def version():
+    """Output the version information and exit."""
+    version = metadata.version('b')
+    print(f'b version {version}')
 
 
 

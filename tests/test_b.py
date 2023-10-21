@@ -1,7 +1,7 @@
 # ======================================================================================================================
 #        File:  test_b.py
 #     Project:  B Bug Tracker
-# Description:  Distributed Bug Tracker Extension for Mercurial
+# Description:  Distributed Bug Tracker
 #      Author:  Jared Julien <jaredjulien@exsystems.net>
 #   Copyright:  (c) 2010-2011 Michael Diamond <michael@digitalgemstones.com>
 #               (c) 2022-2023 Jared Julien <jaredjulien@exsystems.net>

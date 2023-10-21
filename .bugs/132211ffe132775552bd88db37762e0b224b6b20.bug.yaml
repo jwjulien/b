@@ -1,0 +1,15 @@
+title: Make interactive
+type: Feature
+open: true
+author: Jared <jaredjulien@exsystems.net>
+entered: '2023-10-21T11:52:40.709721-04:00'
+owner: Jared <jaredjulien@exsystems.net>
+what: Why not use `questionary` to prompt the user for the important details of new
+  bugs?
+why: The user is currently forced to edit the bug file every time anew bug is added
+  to populate relevant fields.  It would be very handy if the tool would walk the
+  user through some prompts to fill in the fields instead.
+how: |-
+  Not sure how this will work with the templates.  Be careful to accept user templates for new bugs still.
+
+  Perhaps we may need tp consider using a different format for the templates that specify types and allow inputs to the interactive steps when adding new bugs.

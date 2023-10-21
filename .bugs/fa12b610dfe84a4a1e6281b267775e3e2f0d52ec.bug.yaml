@@ -1,0 +1,16 @@
+title: Display warning when bugs directory structure is out of date
+type: Bug
+open: true
+author: Jared <jaredjulien@exsystems.net>
+entered: '2023-10-21T11:49:59.151982-04:00'
+owner: Jared <jaredjulien@exsystems.net>
+details: If the bugs directory is the old format then no bugs are found.
+reproduce:
+- Install old version of b.
+- Initialize and add a new bug.
+- Update b to latest version.
+- Run `b list`.
+expected: The opened bug should be listed.
+actual: No bugs are listed.
+fix: Add a check to the `cli` method that checks for the presence of an old format
+  project and suggests to the user they they run the `migrate` command.

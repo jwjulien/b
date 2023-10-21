@@ -53,6 +53,7 @@ class Tracker:
         """Initialize by reading the task files, if they exist."""
         self.user = user
         self.editor = editor
+        self.logger = logging.getLogger('tracker')
 
         def climb_tree(reference) -> str:
             working = os.getcwd()
@@ -70,6 +71,7 @@ class Tracker:
 
         bugsdir = os.path.expanduser(bugsdir)
         self.bugsdir = bugsdir if os.path.isabs(os.path.expanduser(bugsdir)) else climb_tree(bugsdir)
+        self.logger.info('Bugs directory: %s', self.bugsdir)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -137,7 +139,7 @@ class Tracker:
             if key ==  'id':
                 continue
             if key not in keys:
-                logging.warning('Bug contains key "%s" which is not part of the schema.  Retaining.', key)
+                self.logger.warning('Bug contains key "%s" which is not part of the schema.  Retaining.', key)
                 keys.append(key)
 
         # Generate a new dict with values for the bug in the sorted order of keys.
@@ -619,7 +621,7 @@ class Tracker:
     def verify(self) -> None:
         """Verify that each individual bugs file in the bugs folder matches the JSON schema and print any errors."""
         schema_file = os.path.join(os.path.dirname(__file__), 'schema', 'bug.schema.json')
-        logging.info('Verifying bug files against schema %s', schema_file)
+        self.logger.info('Verifying bug files against schema %s', schema_file)
         with open(schema_file) as handle:
             schema = json.load(handle)
         validator = jsonschema.Draft202012Validator(schema)
@@ -644,7 +646,7 @@ class Tracker:
                 for idx, error in enumerate(errors):
                     print(f'- {idx + 1}: {error.message}')
             else:
-                logging.debug('No schema violations found in %s', filename)
+                self.logger.debug('No schema violations found in %s', filename)
 
         # If none of the files produced any errors, then let the user know that everything is great.
         if not at_least_one:
