@@ -1,6 +1,6 @@
 title: Display warning when bugs directory structure is out of date
 type: Bug
-open: true
+open: false
 author: Jared <jaredjulien@exsystems.net>
 entered: '2023-10-21T11:49:59.151982-04:00'
 owner: Jared <jaredjulien@exsystems.net>

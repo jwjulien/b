@@ -11,6 +11,7 @@
 # ======================================================================================================================
 # Import Statements
 # ----------------------------------------------------------------------------------------------------------------------
+import os
 import logging
 from importlib import metadata
 
@@ -88,11 +89,18 @@ def cli(ctx: click.Context, verbose: int):
     level = levels[min(2, verbose)]
     logging.basicConfig(level=level, format='%(message)s', datefmt="[%X]", handlers=[RichHandler()])
 
+    # No command also means that no context was loaded yet.
+    if ctx.invoked_subcommand is None:
+        load_context(ctx)
+
+    # Check for old versions and suggest migration.
+    if os.path.exists(os.path.join(ctx.obj['tracker'].bugsdir, 'bugs')):
+        logging.warning('It looks like the bugs directory is out of date - please run the `migrate` command')
+
     # Run list command with default settings if no command was issued.
     if ctx.invoked_subcommand is None:
-        # No command alsom means that no context was loaded yet.
-        load_context(ctx)
         ctx.obj['tracker'].list()
+
 
 
 
