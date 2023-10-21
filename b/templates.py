@@ -32,7 +32,7 @@ def templates():
 @templates.command()
 @click.option('-d', '--defaults', is_flag=True, help='list only the available non-customized templates')
 @click.pass_context
-def list(ctx, defaults: bool):
+def list(ctx: click.Context, defaults: bool):
     """List the templates that are available to the `add` command."""
     print(f"Available {'default ' if defaults else ''}bug templates:")
     templates = ctx.obj['tracker'].list_templates(only_defaults=defaults)
@@ -47,7 +47,7 @@ def list(ctx, defaults: bool):
 @templates.command()
 @click.argument('template')
 @click.pass_context
-def customize(ctx, template: str):
+def customize(ctx: click.Context, template: str):
     """Customize the TEMPLATE for this project."""
     ctx.obj['tracker'].customize_template(template)
     # TODO: Consider a second, "global" option for custom templates that allow reuse across all user's projects.
@@ -57,7 +57,7 @@ def customize(ctx, template: str):
 @templates.command()
 @click.argument('template')
 @click.pass_context
-def edit(ctx, template: str):
+def edit(ctx: click.Context, template: str):
     """Open custom TEMPLATE for editing."""
     try:
         ctx.obj['tracker'].edit_template(template)

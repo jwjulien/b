@@ -29,7 +29,7 @@ def config():
 @config.command()
 @click.argument('key')
 @click.pass_context
-def unset(ctx, key):
+def unset(ctx: click.Context, key):
     """Remove the saved setting identified by KEY.
 
     This restores the setting to it's default value.
@@ -43,7 +43,7 @@ def unset(ctx, key):
 # ----------------------------------------------------------------------------------------------------------------------
 @config.command()
 @click.pass_context
-def set(ctx, key: str, value: str):
+def set(ctx: click.Context, key: str, value: str):
     """Set the setting identified by KEY to the provided VALUE."""
     ctx.obj['settings'].set(key, value)
     print(f'"{key}" set to "{value}"')
@@ -54,7 +54,7 @@ def set(ctx, key: str, value: str):
 @config.command()
 @click.argument('key')
 @click.pass_context
-def get(ctx, key: str):
+def get(ctx: click.Context, key: str):
     """Get the current value for the setting identified by KEY."""
     print(key, '=', ctx.obj['settings'].get(key))
 
@@ -62,7 +62,7 @@ def get(ctx, key: str):
 # ----------------------------------------------------------------------------------------------------------------------
 @config.command()
 @click.pass_context
-def list(ctx):
+def list(ctx: click.Context):
     """List all of the currently configured settings."""
     if ctx.obj['settings'].exists:
         print(f"Config file is located at {ctx.obj['settings'].file}")

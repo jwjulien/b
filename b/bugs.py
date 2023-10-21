@@ -164,7 +164,7 @@ class Tracker:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-    def _prefixes(self) -> Dict[str, str]:
+    def prefixes(self) -> Dict[str, str]:
         prefixes = {}
         ids = self._list_ids()
         for id in ids:
@@ -372,7 +372,7 @@ class Tracker:
 
         self._write(bug)
 
-        prefix = self._prefixes()[full_id]
+        prefix = self.prefixes()[full_id]
         short_task_id = "[bold cyan]%s[/]:[yellow]%s[/]" % (prefix, full_id[len(prefix):])
         print(f"Added bug {short_task_id}")
 
@@ -538,7 +538,7 @@ class Tracker:
 
         else:
             # For a detailed view, show the users as a tree with bugs as branches under each user.
-            prefixes = self._prefixes()
+            prefixes = self.prefixes()
             tree = Tree(f'{scope} bugs')
             for user, bugs in self._users_list(scope).items():
                 if bugs:
@@ -557,7 +557,7 @@ class Tracker:
         if not os.path.exists(self.bugsdir):
             raise exceptions.NotInitialized('No bugs directory found - use `init` command first')
 
-        prefixes = self._prefixes()
+        prefixes = self.prefixes()
 
         if owner != '*':
             owner = self._get_user(owner)

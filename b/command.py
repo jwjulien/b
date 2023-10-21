@@ -27,20 +27,10 @@ from b.templates import templates
 
 
 # ======================================================================================================================
-# CLI Application Base
+# Helpers
 # ----------------------------------------------------------------------------------------------------------------------
-@click.group(invoke_without_command=True)
-@click.option('-v', 'verbose', count=True, help='increase verbosity of output')
-@click.pass_context
-def cli(ctx, verbose):
-    """A simple, distributed bug tracker."""
+def load_context(ctx: click.Context):
     ctx.ensure_object(dict)
-
-    # Setup logging output.
-    levels = [logging.WARNING, logging.INFO, logging.DEBUG]
-    level = levels[min(2, verbose)]
-    logging.basicConfig(level=level, format='%(message)s', datefmt="[%X]", handlers=[RichHandler()])
-
     ctx.obj['settings'] = Settings()
     ctx.obj['tracker'] = Tracker(
         ctx.obj['settings'].get('dir'),
@@ -48,8 +38,60 @@ def cli(ctx, verbose):
         ctx.obj['settings'].get('editor')
     )
 
+
+
+
+# ======================================================================================================================
+# Aliased Command Class
+# ----------------------------------------------------------------------------------------------------------------------
+class AliasedGroup(click.Group):
+    def get_command(self, ctx: click.Context, cmd_name: str):
+        # These "settings" and "tracker" objects in the context will be shared with all of the commands/subcommands.
+        load_context(ctx)
+
+        # Check if the command matches any of the registered commands first.
+        rv = super().get_command(ctx, cmd_name)
+        if rv is not None:
+            return rv
+
+        # When no command was matched, assume the "command" is a prefix and try to show `details` for it.
+        prefixes = [x for x in ctx.obj['tracker'].prefixes().values() if x.startswith(cmd_name)]
+        if not prefixes:
+            # Can't do anything when there are no matches.
+            return None
+        elif len(prefixes) == 1:
+            # A single prefix was found, show details for that.
+            details.params[0].default = prefixes[0]
+            return super().get_command(ctx, 'details')
+        # Too many prefixes matched to single one out - display the list to the user.
+        ctx.fail(f"Too many matches: {', '.join(sorted(prefixes))}")
+
+
+    def resolve_command(self, ctx, args):
+        # always return the full command name
+        _, cmd, args = super().resolve_command(ctx, args)
+        return cmd.name, cmd, args
+
+
+
+
+# ======================================================================================================================
+# CLI Application Base
+# ----------------------------------------------------------------------------------------------------------------------
+@click.group(cls=AliasedGroup, invoke_without_command=True)
+@click.option('-v', 'verbose', count=True, help='increase verbosity of output')
+@click.pass_context
+def cli(ctx: click.Context, verbose: int):
+    """A simple, distributed bug tracker."""
+    # Setup logging output.
+    levels = [logging.WARNING, logging.INFO, logging.DEBUG]
+    level = levels[min(2, verbose)]
+    logging.basicConfig(level=level, format='%(message)s', datefmt="[%X]", handlers=[RichHandler()])
+
     # Run list command with default settings if no command was issued.
     if ctx.invoked_subcommand is None:
+        # No command alsom means that no context was loaded yet.
+        load_context(ctx)
         ctx.obj['tracker'].list()
 
 
@@ -61,7 +103,7 @@ def cli(ctx, verbose):
 @cli.command()
 @click.option('-f', '--force', is_flag=True, help='force creation of .bugs directory at this location')
 @click.pass_context
-def init(ctx, force: bool):
+def init(ctx: click.Context, force: bool):
     """Initialize a bugs directory for new bugs."""
     ctx.obj['tracker'].initialize(force)
 
@@ -74,7 +116,7 @@ def init(ctx, force: bool):
 @click.option('-t', '--template', default='bug', help='specify the template to use for this bug')
 @click.option('-e', '--edit', is_flag=True, help='open this new bug for editing after creating')
 @click.pass_context
-def add(ctx, title: str, self: bool, template: str, edit: bool):
+def add(ctx: click.Context, title: str, self: bool, template: str, edit: bool):
     """Add a new, open bug to the tracker.
 
     TITLE specifies the short summary text to to serve as a title for the bug.
@@ -93,7 +135,7 @@ def add(ctx, title: str, self: bool, template: str, edit: bool):
 @click.argument('title')
 @click.option('-e', '--edit', is_flag=True, help='open this bug for editing after changing the title')
 @click.pass_context
-def rename(ctx, prefix: str, title: str, edit: bool):
+def rename(ctx: click.Context, prefix: str, title: str, edit: bool):
     """Change the title of the bug denoted by PREFIX to the new TITLE."""
     ctx.obj['tracker'].rename(prefix, title)
     if edit:
@@ -108,7 +150,7 @@ def rename(ctx, prefix: str, title: str, edit: bool):
 @click.option('-r', '--resolved', 'scope', flag_value='resolved', help='list only resolved bugs')
 @click.option('-a', '--all', 'scope', flag_value='all', help='')
 @click.pass_context
-def users(ctx, detailed: bool, scope: str):
+def users(ctx: click.Context, detailed: bool, scope: str):
     """Display a list of all users and the number of open bugs assigned to each.
 
     By default, only the count of bugs for each owner are shown.  Use the '-d' flag to list individual bugs for each
@@ -126,7 +168,7 @@ def users(ctx, detailed: bool, scope: str):
 @click.argument('username')
 @click.option('-f', '--force', is_flag=True, help='force the user of USERNAME verbatim')
 @click.pass_context
-def assign(ctx, prefix: str, username: str, force: bool):
+def assign(ctx: click.Context, prefix: str, username: str, force: bool):
     """Assign bug denoted by PREFIX to USERNAME.
 
     USERNAME can be specified as "nobody" to remove ownership of the bug.
@@ -143,7 +185,7 @@ def assign(ctx, prefix: str, username: str, force: bool):
 @cli.command()
 @click.argument('prefix')
 @click.pass_context
-def details(ctx, prefix: str):
+def details(ctx: click.Context, prefix: str):
     """Print the extended details of the bug specified by PREFIX."""
     ctx.obj['tracker'].details(prefix)
 
@@ -152,7 +194,7 @@ def details(ctx, prefix: str):
 @cli.command()
 @click.argument('prefix')
 @click.pass_context
-def edit(ctx, prefix: str):
+def edit(ctx: click.Context, prefix: str):
     """Launch the system editor to provide additional details."""
     ctx.obj['tracker'].edit(prefix)
 
@@ -163,7 +205,7 @@ def edit(ctx, prefix: str):
 @click.argument('comment')
 @click.option('-e', '--edit', is_flag=True, help='open this bug for editing after adding comment')
 @click.pass_context
-def comment(ctx, prefix: str, comment: str, edit: bool):
+def comment(ctx: click.Context, prefix: str, comment: str, edit: bool):
     """Append the provided COMMENT to the details of the bug identified by PREFIX."""
     ctx.obj['tracker'].comment(prefix, comment)
     if edit:
@@ -174,7 +216,7 @@ def comment(ctx, prefix: str, comment: str, edit: bool):
 @cli.command()
 @click.argument('prefix')
 @click.pass_context
-def resolve(ctx, prefix: str):
+def resolve(ctx: click.Context, prefix: str):
     """Mark the bug identified by PREFIX as resolved."""
     ctx.obj['tracker'].resolve(prefix)
 
@@ -183,7 +225,7 @@ def resolve(ctx, prefix: str):
 @cli.command()
 @click.argument('prefix')
 @click.pass_context
-def reopen(ctx, prefix: str):
+def reopen(ctx: click.Context, prefix: str):
     """Mark the bug identified by PREFIX as open."""
     ctx.obj['tracker'].reopen(prefix)
 
@@ -199,7 +241,7 @@ def reopen(ctx, prefix: str):
 @click.option('-t', '--title', 'sort', flag_value='title', help='sort bug alphabetically by title')
 @click.option('-e', '--entered', 'sort', flag_value='entered', help='sort bugs chronologically by entered date')
 @click.pass_context
-def list(ctx, scope: str, owner: str, grep: str, descending: bool, sort: str):
+def list(ctx: click.Context, scope: str, owner: str, grep: str, descending: bool, sort: str):
     """List all bugs according to the specified filters."""
     ctx.obj['tracker'].list(scope, owner, grep, sort, descending)
 
@@ -208,7 +250,7 @@ def list(ctx, scope: str, owner: str, grep: str, descending: bool, sort: str):
 @cli.command()
 @click.argument('prefix')
 @click.pass_context
-def id(ctx, prefix: str):
+def id(ctx: click.Context, prefix: str):
     """Print the full ID of the buf identified by PREFIX."""
     ctx.obj['tracker'].id(prefix)
 
@@ -216,7 +258,7 @@ def id(ctx, prefix: str):
 # ----------------------------------------------------------------------------------------------------------------------
 @cli.command()
 @click.pass_context
-def verify(ctx):
+def verify(ctx: click.Context):
     """Verify that all bug YAML files are valid and report any discrepancies."""
     ctx.obj['tracker'].verify()
 
@@ -224,7 +266,7 @@ def verify(ctx):
 # ----------------------------------------------------------------------------------------------------------------------
 @cli.command()
 @click.pass_context
-def migrate(ctx):
+def migrate(ctx: click.Context):
     """Migrate bugs directory to the latest version."""
     ctx.obj['tracker'].migrate()
 

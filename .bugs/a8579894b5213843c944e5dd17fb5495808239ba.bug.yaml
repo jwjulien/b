@@ -1,17 +1,9 @@
 title: Show details when prefix is provided w/o command
 type: Feature
-open: true
+open: false
 author: Jared <jaredjulien@exsystems.net>
 entered: '2023-06-28T09:50:42.557141-04:00'
 owner: Jared <jaredjulien@exsystems.net>
-comments:
-- author: Jared <jaredjulien@exsystems.net>
-  date: '2023-06-28T10:36:36.368662-04:00'
-  text: This really feels like it's going to be difficult and hacky to implement.  It
-    doesn't seem as if the ArgumentParser add_subparser will allow arbitrary commands.  So
-    all that can be done is to skip error checking within ArgumentParser and let b
-    catch the exception in an attempt to process the prefix, but in this case the
-    args get lost.
 what: Show "details" for a bug if a prefix is provided without a command.
 why: |-
   That is just the intuitive use case.
@@ -33,3 +25,11 @@ how: |-
 
   This needs to be cognizant of the switches that are available to the current default,
   the "list" command.  Running `b -r` should still list all of the resolved bugs.
+comments:
+- author: Jared <jaredjulien@exsystems.net>
+  date: '2023-06-28T10:36:36.368662-04:00'
+  text: This really feels like it's going to be difficult and hacky to implement.  It
+    doesn't seem as if the ArgumentParser add_subparser will allow arbitrary commands.  So
+    all that can be done is to skip error checking within ArgumentParser and let b
+    catch the exception in an attempt to process the prefix, but in this case the
+    args get lost.
