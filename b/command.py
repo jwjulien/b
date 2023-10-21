@@ -326,7 +326,7 @@ def migrate(ctx):
 @cli.command()
 def version():
     """Output the version information and exit."""
-    version = metadata.version('b')
+    version = metadata.version('b-bugtracker')
     print(f'b version {version}')
 
 
