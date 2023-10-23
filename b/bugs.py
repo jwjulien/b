@@ -11,25 +11,26 @@
 # ======================================================================================================================
 # Import Statements
 # ----------------------------------------------------------------------------------------------------------------------
+from datetime import datetime
+from glob import glob
+import hashlib
+import json
+import logging
 import os
 import re
 import shutil
 import subprocess
-import hashlib
 import time
-import json
-import logging
-from glob import glob
-from datetime import datetime
 from typing import Dict, List
+import uuid
 
-import yaml
 import jsonschema
 from rich import print, box
 from rich.console import group
 from rich.panel import Panel
 from rich.table import Table
 from rich.tree import Tree
+import yaml
 
 from b import exceptions, migrations
 
@@ -356,8 +357,15 @@ class Tracker:
         # Generate a unique hash for a new ID.
         existing = self._list_ids()
         while True:
-            full_id = hashlib.sha1(str(time.time()).encode('utf-8')).hexdigest()
+            # Generate a hash using the system MAC address and the current timestamp.  This may not be collision-proof,
+            # but odds of a duplicate hash should be extremely low.  This is important as the hashes must be universally
+            # unique for the distributed nature of b to work.
+            full_id = hashlib.sha1((str(time.time()) + str(uuid.getnode())).encode('utf-8')).hexdigest()
+
+            # It should also mean that local collisions are nearly impossible too, however we can make absolutely
+            # certain that we never locally duplicate an ID with a simple check.
             if full_id not in existing:
+                # Break the loop if this ID is unique.
                 break
 
         # Populate default attributes.

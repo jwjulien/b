@@ -1,0 +1,18 @@
+title: Switch ID to UUID
+type: Feature
+open: false
+author: Jared <jaredjulien@exsystems.net>
+entered: '2023-10-21T20:10:50.289623-04:00'
+what: Switch ID from SHA1 hash of the current timestamp to UUID4.
+why: UUIDs take other factors, like the user's PC serial number, into account to absolutely
+  assure unique values.  The current ID mechanism has very low odds of an ID collision,
+  but it's not impossible, and an ID collision would ruin the fundamental purpose
+  of this bug tracker which is to facilitate distributed development.
+how: Best yet, what about the SHA1 hash of a UUID?  That would help assure uniqueness
+  while preserving the existing look and feel.
+comments:
+- author: Jared <jaredjulien@exsystems.net>
+  date: '2023-10-21T21:07:58.715038-04:00'
+  text: Simply adding a random value to the existing scheme prevents collisions pretty
+    well.  A test to attempt to force a collision resulted in greater than 43 billion
+    failed attempts before giving up.
